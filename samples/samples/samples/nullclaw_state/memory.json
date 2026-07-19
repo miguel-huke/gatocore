@@ -1,0 +1,24 @@
+[
+  {
+    "id": "mem-1773927317799.651-1",
+    "categoria": "conversation",
+    "texto": "status geral do sistema",
+    "criado_em_ms": 1773927317799.653,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927317796.878",
+      "model": "ptjs-assistant"
+    }
+  },
+  {
+    "id": "mem-1773927317799.826-2",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=local-ptjs model=ptjs-assistant reason=default\nworkspace=samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927317799.827,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927317796.878",
+      "model": "ptjs-assistant"
+    }
+  }
+]

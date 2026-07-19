@@ -1,0 +1,15 @@
+incluir("../../samples/gatod_engine/src/bootstrap/load_all.ptjs")
+
+definir imports como gatod.engine.importWorkspace()
+imports.escrever_texto("imports/ui_theme.json", "{\"tema\":\"amber\"}")
+imports.escrever_texto("imports/intro.wav", "RIFFdemo")
+imports.escrever_texto("imports/external_scene.gatod.json", "{\"tipo_no\":\"Node2D\",\"nome\":\"ImportedRoot\",\"x\":0,\"y\":0,\"filhos\":[]}")
+
+definir project como gatod.engine.createProject()
+mostrar gatod.engine.importAssets(project)
+
+project.selected_asset_id = "external_scene.gatod.json"
+mostrar gatod.engine.loadSelectedSceneAsset(project)
+mostrar project.scene_root.nome
+mostrar gatod.engine.selectedAsset(project).tipo
+mostrar tamanho de gatod.engine.selectedAsset(project).hash_fnv1a

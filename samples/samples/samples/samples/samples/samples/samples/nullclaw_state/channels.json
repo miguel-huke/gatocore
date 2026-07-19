@@ -1,0 +1,36 @@
+[
+  {
+    "nome": "cli",
+    "tipo": "cli",
+    "enabled": true,
+    "running": true,
+    "allowlist": [
+      "local"
+    ],
+    "health": "ok"
+  },
+  {
+    "nome": "telegram",
+    "tipo": "chat",
+    "enabled": false,
+    "running": false,
+    "allowlist": [],
+    "health": "idle"
+  },
+  {
+    "nome": "discord",
+    "tipo": "chat",
+    "enabled": false,
+    "running": false,
+    "allowlist": [],
+    "health": "idle"
+  },
+  {
+    "nome": "signal",
+    "tipo": "chat",
+    "enabled": false,
+    "running": false,
+    "allowlist": [],
+    "health": "idle"
+  }
+]

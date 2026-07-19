@@ -1,0 +1,62 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.state) {
+    return;
+  }
+
+  doom.state = {};
+
+  doom.state.applyFresh = function (target, source) {
+    var key;
+    for (key in target) {
+      delete target[key];
+    }
+    for (key in source) {
+      target[key] = source[key];
+    }
+    return target;
+  };
+
+  doom.state.createDemo = function () {
+    var map = doom.world.makeDemoMap();
+    return {
+      map: map,
+      player: doom.player.create(map),
+      entities: doom.entities.spawnDemo(),
+      running: true,
+      mode: "playing",
+      show_map: true,
+      frame: 0,
+      message: "WASD move | Q/E strafe | ESPACO atira | M mapa | X sai",
+      weapon_flash: 0,
+      weapon_kick: 0,
+      damage_flash: 0,
+      metrics: {
+        last_render_ms: 0,
+        frames: 0
+      },
+      stats: {
+        kills: 0,
+        total_kills: 3,
+        pickups: 0,
+        total_pickups: 3,
+        shots: 0,
+        hits: 0
+      }
+    };
+  };
+
+  doom.state.createTerminalDemo = function () {
+    var state = doom.state.createDemo();
+    state.mode = "title";
+    state.show_map = false;
+    state.message = "ENTER ou ESPACO inicia";
+    return state;
+  };
+
+  doom.state.restartTerminalDemo = function (state) {
+    return doom.state.applyFresh(state, doom.state.createTerminalDemo());
+  };
+})(globalThis);

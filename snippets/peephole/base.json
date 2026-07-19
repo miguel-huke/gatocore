@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "pattern": "^\\s*mov\\s+([a-z0-9]+),\\s*\\1\\s*$",
+      "replace": ""
+    },
+    {
+      "pattern": "^\\s*add\\s+([a-z0-9]+),\\s*0\\s*$",
+      "replace": ""
+    },
+    {
+      "pattern": "^\\s*sub\\s+([a-z0-9]+),\\s*0\\s*$",
+      "replace": ""
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.runtime) {
+    return;
+  }
+
+  doom.runtime = {};
+
+  doom.runtime.readInput = function (tecla, windowInput) {
+    var text = String(tecla || "");
+    var gui = windowInput || {};
+    return {
+      forward: text.indexOf("w") >= 0 || gui.w ? 1 : 0,
+      backward: text.indexOf("s") >= 0 || gui.s ? 1 : 0,
+      turn_left: text.indexOf("a") >= 0 || gui.a ? 1 : 0,
+      turn_right: text.indexOf("d") >= 0 || gui.d ? 1 : 0,
+      strafe_left: text.indexOf("q") >= 0 || gui.q ? 1 : 0,
+      strafe_right: text.indexOf("e") >= 0 || gui.e ? 1 : 0,
+      fire: text.indexOf(" ") >= 0 || text.indexOf("f") >= 0 || gui.space ? 1 : 0,
+      start: text.indexOf("\n") >= 0 || text.indexOf("\r") >= 0 || text.indexOf(" ") >= 0 || gui.enter || gui.space ? 1 : 0,
+      restart: text.indexOf("r") >= 0 || gui.r ? 1 : 0,
+      exit: text.indexOf("x") >= 0 || gui.x || gui.quit ? 1 : 0,
+      toggle_map: text.indexOf("m") >= 0 || gui.m ? 1 : 0
+    };
+  };
+
+  doom.runtime.step = function (state, input, dt) {
+    if (input.exit) {
+      state.running = false;
+      state.message = "Encerrado pelo usuario";
+      return;
+    }
+
+    if (state.mode === "title") {
+      if (input.start || input.fire) {
+        state.mode = "playing";
+        state.message = "Objetivo: eliminar os inimigos e alcancar a saida >";
+      }
+      state.frame += 1;
+      return;
+    }
+
+    if (state.mode === "victory" || state.mode === "game_over") {
+      if (input.restart) {
+        doom.state.restartTerminalDemo(state);
+      }
+      state.frame += 1;
+      return;
+    }
+
+    if (input.toggle_map) {
+      state.show_map = !state.show_map;
+    }
+    if (input.fire) {
+      doom.entities.fire(state);
+    }
+    doom.player.step(state.player, state.map, input, dt);
+    doom.entities.update(state, dt);
+    state.frame += 1;
+  };
+
+  doom.runtime.playTerminal = function (state, width, height, options) {
+    var hidden = false;
+    var raw = false;
+    var video = false;
+    var settings = options || {};
+    try {
+      video = doom.window.open(
+        doom.config.video_width,
+        doom.config.video_height,
+        doom.config.video_scale,
+        "Doom PTJS"
+      );
+      if (!video) {
+        if (settings.require_window) {
+          escrever("erro: " + doom.window.describeFailure() + "\n");
+          state.running = false;
+          state.message = "Janela grafica obrigatoria nao disponivel";
+          return;
+        }
+        escrever("Aviso: janela grafica indisponivel, fallback ASCII ativo.\n");
+        escrever("Motivo: " + doom.window.describeFailure() + "\n");
+        ocultar_cursor();
+        hidden = true;
+        ativar_terminal_cru();
+        raw = true;
+      } else {
+        escrever("Janela grafica ativa. Use a propria janela para jogar.\n");
+      }
+      while (state.running) {
+        var tecla = video ? "" : ler_tecla(0);
+        var input = doom.runtime.readInput(tecla, video ? doom.window.readInput() : null);
+        doom.profiler.start("update");
+        doom.runtime.step(state, input, 0.12);
+        doom.audio.tickMusic(state);
+        doom.profiler.end("update");
+        doom.profiler.start("render");
+        var frame = video ?
+          doom.pixels.frame(state, doom.config.video_width, doom.config.video_height) :
+          doom.render.frame(state, width, height);
+        doom.metrics.recordFrame(state, doom.profiler.end("render"));
+        if (video) {
+          doom.window.present(frame);
+        } else {
+          limpar_tela();
+          mover_cursor(1, 1);
+          escrever(frame + "\n");
+        }
+        esperar(doom.config.target_frame_ms);
+      }
+    } finally {
+      if (video) {
+        doom.window.close();
+      }
+      if (hidden) {
+        mostrar_cursor();
+      }
+      if (raw) {
+        desativar_terminal_cru();
+      }
+      escrever("\n" + state.message + "\n");
+    }
+  };
+})(globalThis);

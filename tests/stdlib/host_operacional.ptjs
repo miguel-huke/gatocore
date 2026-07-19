@@ -1,0 +1,34 @@
+definir ws como workspace("./tmp_host_operacional")
+definir criar_dir como ws.criar_diretorio(".", 1)
+definir cleanup_antigo como ws.existe("nota.txt") ? ws.remover("nota.txt") : null
+definir gravar como ws.escrever_texto("nota.txt", "ola host\n")
+
+mostrar ws.existe("nota.txt")
+mostrar ws.ler_texto("nota.txt").valor.trim()
+mostrar ws.listar(".").valor.indexOf("nota.txt") >= 0
+
+definir segredo_home como segredo("HOME")
+mostrar segredo_home.ok
+mostrar tipo de segredo_home.valor
+
+definir tarefa como job({
+  nome: "printf",
+  comando: ["/usr/bin/printf", "echohost"],
+  capturar: 1
+})
+definir resultado_tarefa como tarefa.executar()
+mostrar resultado_tarefa.ok
+mostrar resultado_tarefa.valor.saida
+
+definir svc como servico({
+  nome: "sleep",
+  comando: ["/usr/bin/sleep", "0.01"]
+})
+definir iniciado como svc.iniciar()
+mostrar iniciado.ok
+definir aguardado como svc.aguardar()
+mostrar aguardado.ok
+mostrar aguardado.valor.status
+
+definir fim_cleanup como ws.remover("nota.txt")
+definir fim_dir como ws.remover(".")

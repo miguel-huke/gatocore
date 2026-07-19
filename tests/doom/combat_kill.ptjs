@@ -1,0 +1,13 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir state como doom.state.createDemo()
+state.player.x = 4.8
+state.player.y = 2.5
+state.player.angle = 0
+
+definir acertou como doom.entities.fire(state)
+
+mostrar acertou
+mostrar state.stats.kills
+mostrar state.player.ammo
+mostrar state.message

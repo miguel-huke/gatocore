@@ -1,0 +1,57 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.profiler) {
+    return;
+  }
+
+  doom.profiler = {
+    marks: {},
+    totals: {},
+    counts: {},
+    start: function (name) {
+      this.marks[name] = doom.util.nowMs();
+    },
+    end: function (name) {
+      var started = this.marks[name];
+      var delta = started == null ? 0 : (doom.util.nowMs() - started);
+      this.totals[name] = (this.totals[name] || 0) + delta;
+      this.counts[name] = (this.counts[name] || 0) + 1;
+      delete this.marks[name];
+      return delta;
+    },
+    measure: function (name, fn) {
+      this.start(name);
+      try {
+        return fn();
+      } finally {
+        this.end(name);
+      }
+    },
+    snapshot: function () {
+      var out = {};
+      var key;
+      for (key in this.totals) {
+        if (Object.prototype.hasOwnProperty.call(this.totals, key)) {
+          out[key] = {
+            total_ms: this.totals[key],
+            count: this.counts[key] || 0,
+            avg_ms: this.counts[key] ? doom.util.round2(this.totals[key] / this.counts[key]) : 0
+          };
+        }
+      }
+      return out;
+    },
+    reportLines: function () {
+      var snap = this.snapshot();
+      var keys = Object.keys(snap).sort();
+      if (!keys.length) {
+        return ["profiling: sem dados"];
+      }
+      return keys.map(function (key) {
+        return key + " total=" + snap[key].total_ms + "ms avg=" + snap[key].avg_ms + "ms count=" + snap[key].count;
+      });
+    }
+  };
+})(globalThis);

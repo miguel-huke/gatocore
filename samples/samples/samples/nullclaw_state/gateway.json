@@ -1,0 +1,8 @@
+{
+  "running": false,
+  "host": "127.0.0.1",
+  "port": 3000,
+  "started_at_ms": null,
+  "heartbeat_count": 0,
+  "last_healthcheck_ms": null
+}

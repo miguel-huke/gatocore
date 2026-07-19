@@ -1,0 +1,28 @@
+{
+  "print": {
+    "i64": "ptjs_print_i64",
+    "bool": "ptjs_print_bool",
+    "null": "ptjs_print_null",
+    "str": "ptjs_print_str",
+    "array": "ptjs_print_array"
+  },
+  "observe": {
+    "i64": "ptjs_observar_i64",
+    "bool": "ptjs_observar_bool",
+    "null": "ptjs_observar_null",
+    "str": "ptjs_observar_str",
+    "array": "ptjs_observar_array"
+  },
+  "identify": {
+    "i64": "ptjs_identificar_i64",
+    "bool": "ptjs_identificar_bool",
+    "null": "ptjs_identificar_null",
+    "str": "ptjs_identificar_str",
+    "array": "ptjs_identificar_array"
+  },
+  "strlen": "ptjs_strlen",
+  "array_len": "ptjs_array_len",
+  "array_get_i64": "ptjs_array_get_i64",
+  "array_get_ptr": "ptjs_array_get_ptr",
+  "string_char_at": "ptjs_string_char_at"
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sessao-1773927317796.878",
+    "criado_em_ms": 1773927317797.049,
+    "provider": "local-ptjs",
+    "model": "ptjs-assistant",
+    "messages": [
+      {
+        "role": "user",
+        "content": "status geral do sistema",
+        "em_ms": 1773927317797.05,
+        "meta": {
+          "summary": "status geral do sistema"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": "NullClaw PTJS online.\nprovider=local-ptjs model=ptjs-assistant reason=default\nworkspace=samples/nullclaw_workspace\nmemory_hits=0",
+        "em_ms": 1773927317797.261,
+        "meta": {
+          "reason": "default"
+        }
+      }
+    ]
+  }
+]

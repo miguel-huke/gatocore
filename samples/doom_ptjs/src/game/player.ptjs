@@ -1,0 +1,62 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.player) {
+    return;
+  }
+
+  doom.player = {};
+
+  doom.player.create = function (map) {
+    return {
+      x: map.start_x,
+      y: map.start_y,
+      angle: map.start_angle,
+      move_speed: 2.4,
+      turn_speed: 1.8,
+      strafe_speed: 1.6,
+      health: 100,
+      armor: 0,
+      ammo: 20,
+      cooldown: 0
+    };
+  };
+
+  doom.player.tryMove = function (player, map, dx, dy) {
+    var nextX = player.x + dx;
+    var nextY = player.y + dy;
+    if (!doom.world.isWall(map, nextX, player.y)) {
+      player.x = nextX;
+    }
+    if (!doom.world.isWall(map, player.x, nextY)) {
+      player.y = nextY;
+    }
+  };
+
+  doom.player.step = function (player, map, input, dt) {
+    var forward = (input.forward || 0) - (input.backward || 0);
+    var strafe = (input.strafe_right || 0) - (input.strafe_left || 0);
+    var turn = (input.turn_right || 0) - (input.turn_left || 0);
+    var moveStep = player.move_speed * dt;
+    var strafeStep = player.strafe_speed * dt;
+    player.angle += turn * player.turn_speed * dt;
+    if (forward) {
+      doom.player.tryMove(
+        player,
+        map,
+        Math.cos(player.angle) * moveStep * forward,
+        Math.sin(player.angle) * moveStep * forward
+      );
+    }
+    if (strafe) {
+      doom.player.tryMove(
+        player,
+        map,
+        Math.cos(player.angle + Math.PI / 2) * strafeStep * strafe,
+        Math.sin(player.angle + Math.PI / 2) * strafeStep * strafe
+      );
+    }
+    player.angle = doom.util.wrapAngle(player.angle);
+  };
+})(globalThis);

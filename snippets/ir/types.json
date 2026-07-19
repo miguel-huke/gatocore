@@ -1,0 +1,12 @@
+{
+  "types": [
+    "i64",
+    "bool",
+    "null",
+    "str",
+    "array",
+    "void"
+  ],
+  "default_param_type": "i64",
+  "default_return_type": "i64"
+}

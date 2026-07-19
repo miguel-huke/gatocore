@@ -1,0 +1,46 @@
+definir perfil como padrao_kkrieger()
+mostrar perfil.nome
+
+definir a como arena(32)
+definir bloco como a.alocar(4, 4)
+mostrar bloco.ok
+definir escrito como a.escrever(bloco.valor.offset, "PTJS")
+mostrar escrito.ok
+mostrar a.ler_texto(bloco.valor.offset, 4)
+
+definir bits como bitset(16)
+definir liga1 como bits.ativar(1)
+definir liga3 como bits.ativar(3)
+mostrar bits.contem(1)
+mostrar bits.contar()
+
+definir fila como fila_circular(2)
+mostrar fila.empurrar("a").ok
+mostrar fila.empurrar("b").ok
+mostrar fila.cheia()
+mostrar fila.tirar()
+mostrar fila.empurrar("c").ok
+mostrar fila.listar().join("|")
+
+definir p como pool(2)
+definir s1 como p.alocar({ nome: "x" })
+definir s2 como p.alocar({ nome: "y" })
+mostrar s1.ok
+mostrar p.ativos()
+definir liberado como p.liberar(s1.valor.indice)
+mostrar liberado.ok
+mostrar p.ativos()
+
+definir vc como vetor_compacto("u16", [1, 2, 3])
+vc.definir(1, 9)
+mostrar vc.obter(1)
+mostrar vc.tipo_dado
+
+mostrar embedding_compacto("gato", 8).length
+
+definir idx como indice_vetorial_compacto([
+  "gato curioso",
+  "roteamento tcp"
+], 8)
+mostrar idx.tipo_recurso
+mostrar vizinho_proximo(idx, "gato", 1)[0].item

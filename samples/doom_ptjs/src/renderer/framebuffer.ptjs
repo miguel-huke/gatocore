@@ -1,0 +1,43 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.framebuffer) {
+    return;
+  }
+
+  doom.framebuffer = {};
+
+  doom.framebuffer.create = function (width, height, fill) {
+    var rows = [];
+    var y;
+    fill = fill == null ? " " : String(fill)[0];
+    for (y = 0; y < height; y++) {
+      rows.push(new Array(width + 1).join(fill));
+    }
+    return {
+      width: width,
+      height: height,
+      rows: rows
+    };
+  };
+
+  doom.framebuffer.put = function (buffer, x, y, ch) {
+    if (x < 0 || y < 0 || x >= buffer.width || y >= buffer.height) {
+      return;
+    }
+    var line = buffer.rows[y];
+    buffer.rows[y] = line.slice(0, x) + String(ch)[0] + line.slice(x + 1);
+  };
+
+  doom.framebuffer.writeText = function (buffer, x, y, text) {
+    var idx;
+    for (idx = 0; idx < text.length; idx++) {
+      doom.framebuffer.put(buffer, x + idx, y, text[idx]);
+    }
+  };
+
+  doom.framebuffer.toText = function (buffer) {
+    return buffer.rows.join("\n");
+  };
+})(globalThis);

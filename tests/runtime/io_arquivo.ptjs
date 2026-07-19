@@ -1,0 +1,7 @@
+definir caminho como "./_tmp_io.txt"
+
+escrever_texto(caminho, "abc")
+mostrar ler_texto(caminho)
+mostrar tamanho de ler_bytes(caminho)
+mostrar arquivo_existe(caminho)
+mostrar apagar_arquivo(caminho)

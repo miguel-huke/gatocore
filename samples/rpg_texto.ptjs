@@ -1,0 +1,393 @@
+definir rodando como 1
+definir venceu como 0
+definir local_atual como "vila"
+definir local_retorno como "vila"
+definir heroi como {
+  nome: "Lina",
+  hp: 12,
+  hp_max: 12,
+  ouro: 3,
+  xp: 0,
+  pocoes: 1,
+  chave: 0,
+  reliquia: 0
+}
+definir inimigo como null
+definir mensagens como [
+  "Bem-vindo ao RPG de texto do GatoCore.",
+  "Pressione 1, 2 ou 3 para agir. X sai."
+]
+
+função aleatorio(min, max) faça
+  retornar Math.floor(Math.random() * (max - min + 1)) + min
+fim
+
+função registrar(texto) faça
+  mensagens.push(texto)
+  se tamanho de mensagens > 8 então
+    mensagens.shift()
+  fim
+fim
+
+função barras() faça
+  definir cheio como Math.max(0, heroi.hp)
+  definir vazio como heroi.hp_max - cheio
+  retornar "[" + "#".repeat(cheio) + "-".repeat(vazio) + "]"
+fim
+
+função titulo_local() faça
+  se local_atual === "vila" então
+    retornar "Vila de Pedra"
+  fim
+  se local_atual === "floresta" então
+    retornar "Floresta Nebulosa"
+  fim
+  se local_atual === "ruinas" então
+    retornar "Ruinas Antigas"
+  fim
+  se local_atual === "combate" então
+    retornar "Combate"
+  fim
+  retornar local_atual
+fim
+
+função opcoes_texto() faça
+  se local_atual === "vila" então
+    retornar [
+      "1) descansar",
+      "2) ir para a floresta",
+      "3) ir para as ruinas"
+    ]
+  fim
+
+  se local_atual === "floresta" então
+    retornar [
+      "1) explorar",
+      "2) voltar para a vila",
+      "3) usar pocao"
+    ]
+  fim
+
+  se local_atual === "ruinas" então
+    retornar [
+      "1) explorar ruinas",
+      "2) voltar para a vila",
+      "3) usar pocao"
+    ]
+  fim
+
+  retornar [
+    "1) atacar",
+    "2) usar pocao",
+    "3) fugir"
+  ]
+fim
+
+função usar_pocao() faça
+  se heroi.pocoes <= 0 então
+    registrar("Voce nao tem pocoes.")
+    retornar
+  fim
+
+  se heroi.hp >= heroi.hp_max então
+    registrar("Seu HP ja esta cheio.")
+    retornar
+  fim
+
+  heroi.pocoes = heroi.pocoes - 1
+  heroi.hp = Math.min(heroi.hp_max, heroi.hp + 5)
+  registrar("Voce usou uma pocao e recuperou HP.")
+fim
+
+função receber_dano(valor) faça
+  heroi.hp = heroi.hp - valor
+  se heroi.hp <= 0 então
+    heroi.hp = 0
+    registrar("Seu heroi caiu em batalha.")
+    rodando = 0
+  fim
+fim
+
+função ganhar_recompensa() faça
+  definir ouro como aleatorio(2, 5)
+  definir xp como aleatorio(1, 3)
+  heroi.ouro = heroi.ouro + ouro
+  heroi.xp = heroi.xp + xp
+  registrar("Voce venceu e ganhou " + ouro + " ouro e " + xp + " xp.")
+  inimigo = null
+  local_atual = local_retorno
+fim
+
+função turno_inimigo() faça
+  se inimigo === null então
+    retornar
+  fim
+
+  definir dano como aleatorio(inimigo.ataque_min, inimigo.ataque_max)
+  registrar(inimigo.nome + " acertou voce em " + dano + " de dano.")
+  receber_dano(dano)
+fim
+
+função iniciar_combate(nome, hp, ataque_min, ataque_max) faça
+  inimigo = {
+    nome: nome,
+    hp: hp,
+    ataque_min: ataque_min,
+    ataque_max: ataque_max
+  }
+  local_retorno = local_atual
+  local_atual = "combate"
+  registrar("Um " + nome + " apareceu!")
+fim
+
+função explorar_floresta() faça
+  definir rolagem como aleatorio(1, 100)
+
+  se rolagem <= 35 então
+    iniciar_combate("Lobo das Sombras", 6, 1, 3)
+    retornar
+  fim
+
+  se rolagem <= 65 então
+    definir ouro como aleatorio(1, 4)
+    heroi.ouro = heroi.ouro + ouro
+    registrar("Voce encontrou " + ouro + " ouro entre as arvores.")
+    retornar
+  fim
+
+  se heroi.chave === 0 então
+    heroi.chave = 1
+    registrar("Voce encontrou uma chave antiga escondida na floresta.")
+    retornar
+  fim
+
+  registrar("A floresta estava silenciosa desta vez.")
+fim
+
+função explorar_ruinas() faça
+  se heroi.chave === 0 então
+    registrar("A porta das ruinas esta trancada. Encontre uma chave primeiro.")
+    retornar
+  fim
+
+  se heroi.reliquia === 1 então
+    registrar("As ruinas estao vazias. Voce ja pegou a reliquia.")
+    retornar
+  fim
+
+  definir rolagem como aleatorio(1, 100)
+  se rolagem <= 45 então
+    iniciar_combate("Guardiao de Pedra", 8, 2, 4)
+    retornar
+  fim
+
+  heroi.reliquia = 1
+  registrar("Voce encontrou a Reliquia do GatoCore!")
+  registrar("Volte para a vila para concluir a aventura.")
+fim
+
+função descansar() faça
+  heroi.hp = heroi.hp_max
+  registrar("Voce descansou na vila e recuperou todo o HP.")
+fim
+
+função verificar_vitoria() faça
+  se heroi.reliquia === 1 && local_atual === "vila" então
+    venceu = 1
+    registrar("A reliquia foi entregue. A vila esta salva!")
+    rodando = 0
+  fim
+fim
+
+função agir_vila(escolha) faça
+  se escolha === "1" então
+    descansar()
+    retornar
+  fim
+
+  se escolha === "2" então
+    local_atual = "floresta"
+    registrar("Voce entrou na floresta.")
+    retornar
+  fim
+
+  se escolha === "3" então
+    local_atual = "ruinas"
+    registrar("Voce seguiu para as ruinas.")
+    retornar
+  fim
+fim
+
+função agir_floresta(escolha) faça
+  se escolha === "1" então
+    explorar_floresta()
+    retornar
+  fim
+
+  se escolha === "2" então
+    local_atual = "vila"
+    registrar("Voce voltou para a vila.")
+    verificar_vitoria()
+    retornar
+  fim
+
+  se escolha === "3" então
+    usar_pocao()
+  fim
+fim
+
+função agir_ruinas(escolha) faça
+  se escolha === "1" então
+    explorar_ruinas()
+    retornar
+  fim
+
+  se escolha === "2" então
+    local_atual = "vila"
+    registrar("Voce voltou para a vila.")
+    verificar_vitoria()
+    retornar
+  fim
+
+  se escolha === "3" então
+    usar_pocao()
+  fim
+fim
+
+função agir_combate(escolha) faça
+  se inimigo === null então
+    local_atual = local_retorno
+    retornar
+  fim
+
+  se escolha === "1" então
+    definir dano como aleatorio(2, 4)
+    inimigo.hp = inimigo.hp - dano
+    registrar("Voce atacou " + inimigo.nome + " e causou " + dano + " de dano.")
+    se inimigo.hp <= 0 então
+      ganhar_recompensa()
+      verificar_vitoria()
+      retornar
+    fim
+    turno_inimigo()
+    retornar
+  fim
+
+  se escolha === "2" então
+    usar_pocao()
+    se inimigo !== null então
+      turno_inimigo()
+    fim
+    retornar
+  fim
+
+  se escolha === "3" então
+    se aleatorio(1, 100) <= 60 então
+      registrar("Voce escapou do combate.")
+      inimigo = null
+      local_atual = local_retorno
+    senão
+      registrar("Falha ao fugir.")
+      turno_inimigo()
+    fim
+  fim
+fim
+
+função processar_acao(escolha) faça
+  se local_atual === "vila" então
+    agir_vila(escolha)
+    retornar
+  fim
+
+  se local_atual === "floresta" então
+    agir_floresta(escolha)
+    retornar
+  fim
+
+  se local_atual === "ruinas" então
+    agir_ruinas(escolha)
+    retornar
+  fim
+
+  definir descarte_combate como agir_combate(escolha)
+fim
+
+função processar_teclas(teclas) faça
+  se teclas === null então
+    retornar
+  fim
+
+  definir texto como teclas.toLowerCase()
+
+  para cada tecla em texto faça
+    se tecla === "x" então
+      registrar("A aventura foi encerrada pelo jogador.")
+      rodando = 0
+      retornar
+    fim
+
+    se tecla === "1" || tecla === "2" || tecla === "3" então
+      processar_acao(tecla)
+      se !rodando então
+        retornar
+      fim
+    fim
+  fim
+fim
+
+função desenhar() faça
+  definir texto como ""
+  definir i como 0
+  definir opcoes como opcoes_texto()
+
+  limpar_tela()
+  mover_cursor(1, 1)
+
+  texto = texto + "GATOCORE RPG DE TEXTO\n"
+  texto = texto + "======================\n"
+  texto = texto + "Local: " + titulo_local() + "\n"
+  texto = texto + "HP: " + barras() + " " + heroi.hp + "/" + heroi.hp_max + "\n"
+  texto = texto + "Ouro: " + heroi.ouro + " | XP: " + heroi.xp + " | Pocoes: " + heroi.pocoes + "\n"
+  texto = texto + "Chave: " + (heroi.chave ? "sim" : "nao") + " | Reliquia: " + (heroi.reliquia ? "sim" : "nao") + "\n"
+
+  se local_atual === "combate" && inimigo !== null então
+    texto = texto + "Inimigo: " + inimigo.nome + " (HP " + inimigo.hp + ")\n"
+  fim
+
+  texto = texto + "\nAcoes:\n"
+  enquanto i < tamanho de opcoes faça
+    texto = texto + "  " + opcoes[i] + "\n"
+    i = i + 1
+  fim
+
+  texto = texto + "  x) sair\n"
+  texto = texto + "\nLog:\n"
+
+  i = 0
+  enquanto i < tamanho de mensagens faça
+    texto = texto + "- " + mensagens[i] + "\n"
+    i = i + 1
+  fim
+
+  escrever(texto)
+fim
+
+definir init_ocultar_cursor como ocultar_cursor()
+definir init_terminal_cru como ativar_terminal_cru()
+definir init_desenho como desenhar()
+
+enquanto rodando faça
+  definir tecla como ler_tecla(80)
+  definir descarte_input como processar_teclas(tecla)
+  definir descarte_desenho como desenhar()
+  definir descarte_espera como esperar(50)
+fim
+
+definir fim_mostrar_cursor como mostrar_cursor()
+definir fim_terminal_cru como desativar_terminal_cru()
+
+se venceu então
+  escrever("\nVITORIA: a vila foi salva.\n")
+senão
+  escrever("\nFim da aventura.\n")
+fim

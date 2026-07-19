@@ -1,0 +1,5 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir state como doom.state.createDemo()
+definir frame como doom.render.frame(state, 40, 18)
+mostrar doom.util.fnv1aString(frame)

@@ -1,0 +1,3 @@
+mostrar tipo de agora_ms()
+mostrar tamanho_terminal().largura >= 0
+mostrar ler_tecla(1) === null

@@ -1,0 +1,354 @@
+[
+  {
+    "id": "mem-1773927459854.456-1",
+    "categoria": "conversation",
+    "texto": "preciso de um plano de seguranca",
+    "criado_em_ms": 1773927459854.458,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927459853.395",
+      "model": "ptjs-security"
+    }
+  },
+  {
+    "id": "mem-1773927459854.709-2",
+    "categoria": "conversation",
+    "texto": "Plano operacional de seguranca gerado.\nprovider=openai-codex model=ptjs-security reason=route:seguranca\nUse: doctor, memory search, !tool scan README.md",
+    "criado_em_ms": 1773927459854.711,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927459853.395",
+      "model": "ptjs-security"
+    }
+  },
+  {
+    "id": "mem-1773927472566.223-3",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927472566.226,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927472564.196",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927472566.738-4",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927472566.74,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927472564.196",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927477844.366-5",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927477844.369,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927477839.8",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927477844.704-6",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927477844.705,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927477839.8",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927483121.55-7",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927483121.552,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927483116.975",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927483121.787-8",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927483121.788,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927483116.975",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927545738.987-9",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927545738.995,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927545732.2",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927545740.449-10",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927545740.454,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927545732.2",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927551023.142-11",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927551023.147,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927551018.442",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927551024.085-12",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927551024.089,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927551018.442",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927556364.432-13",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927556364.437,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927556359.514",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927556365.803-14",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927556365.809,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927556359.514",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927608930.897-15",
+    "categoria": "conversation",
+    "texto": "preciso de um plano de seguranca",
+    "criado_em_ms": 1773927608930.898,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927608928.311",
+      "model": "ptjs-security"
+    }
+  },
+  {
+    "id": "mem-1773927608931.15-16",
+    "categoria": "conversation",
+    "texto": "Plano operacional de seguranca gerado.\nprovider=openai-codex model=ptjs-security reason=route:seguranca\nUse: doctor, memory search, !tool scan README.md",
+    "criado_em_ms": 1773927608931.151,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927608928.311",
+      "model": "ptjs-security"
+    }
+  },
+  {
+    "id": "mem-1773927618763.389-17",
+    "categoria": "conversation",
+    "texto": "/tools",
+    "criado_em_ms": 1773927618763.395,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927618764.808-18",
+    "categoria": "conversation",
+    "texto": "tools=delegate, http_get, ls, memory_search, memory_store, read, scan, status, write",
+    "criado_em_ms": 1773927618764.815,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927622138.512-19",
+    "categoria": "conversation",
+    "texto": "/model",
+    "criado_em_ms": 1773927622138.518,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927622139.799-20",
+    "categoria": "conversation",
+    "texto": "provider=openai-codex model=gpt-5.4 reason=default\nroutes=codigo:ptjs-code, seguranca:ptjs-security, padrao:ptjs-assistant",
+    "criado_em_ms": 1773927622139.805,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927629703.354-21",
+    "categoria": "conversation",
+    "texto": "/tools",
+    "criado_em_ms": 1773927629703.361,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927629704.627-22",
+    "categoria": "conversation",
+    "texto": "tools=delegate, http_get, ls, memory_search, memory_store, read, scan, status, write",
+    "criado_em_ms": 1773927629704.636,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927635805.632-23",
+    "categoria": "conversation",
+    "texto": "read *",
+    "criado_em_ms": 1773927635805.636,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927635806.24-24",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS respondeu.\nprovider=openai-codex model=gpt-5.4 reason=default\nmemoria=vazia\nprompt=read *",
+    "criado_em_ms": 1773927635806.243,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927640287.814-25",
+    "categoria": "conversation",
+    "texto": "test",
+    "criado_em_ms": 1773927640287.819,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927640288.628-26",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS respondeu.\nprovider=openai-codex model=gpt-5.4 reason=default\nmemoria=vazia\nprompt=test",
+    "criado_em_ms": 1773927640288.631,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927644417.849-27",
+    "categoria": "conversation",
+    "texto": "exit",
+    "criado_em_ms": 1773927644417.851,
+    "meta": {
+      "role": "user",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927644418.446-28",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS respondeu.\nprovider=openai-codex model=gpt-5.4 reason=default\nmemoria=vazia\nprompt=exit",
+    "criado_em_ms": 1773927644418.448,
+    "meta": {
+      "role": "assistant",
+      "session_id": "sessao-1773927609007.439",
+      "model": "gpt-5.4"
+    }
+  },
+  {
+    "id": "mem-1773927648853.877-29",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927648853.881,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927648848.729",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927648854.745-30",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927648854.749,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927648848.729",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927654150.832-31",
+    "categoria": "conversation",
+    "texto": "status da memoria",
+    "criado_em_ms": 1773927654150.837,
+    "meta": {
+      "role": "user",
+      "session_id": "cron-session-1773927654145.208",
+      "model": "ptjs-router"
+    }
+  },
+  {
+    "id": "mem-1773927654151.744-32",
+    "categoria": "conversation",
+    "texto": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0",
+    "criado_em_ms": 1773927654151.747,
+    "meta": {
+      "role": "assistant",
+      "session_id": "cron-session-1773927654145.208",
+      "model": "ptjs-router"
+    }
+  }
+]

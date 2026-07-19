@@ -1,0 +1,10 @@
+definir raiz como no2d("Raiz")
+definir filho como sprite2d("Heroi", { x: 12, y: 14 })
+definir descarte como raiz.adicionar_filho(filho)
+definir tree como arvore_cena(raiz)
+definir packed como cena_empacotada(raiz)
+
+mostrar tree.listar().length
+mostrar tree.buscar(filho.id).nome
+mostrar packed.instanciar().filhos[0].tipo_no
+mostrar viewport({ largura: 320, altura: 180 }).largura

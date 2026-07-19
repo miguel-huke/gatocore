@@ -1,0 +1,20 @@
+{
+  "opcodes": [
+    "const_int",
+    "const_str",
+    "const_ptr",
+    "load_local",
+    "store_local",
+    "neg",
+    "not",
+    "bin",
+    "cmp",
+    "call",
+    "call_runtime",
+    "print",
+    "label",
+    "jmp",
+    "br",
+    "ret"
+  ]
+}

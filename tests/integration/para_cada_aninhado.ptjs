@@ -1,0 +1,9 @@
+definir total como 0
+
+para cada linha em [[1, 2], [3, 4]] faça
+  para cada item em linha faça
+    total = total + item
+  fim
+fim
+
+mostrar total

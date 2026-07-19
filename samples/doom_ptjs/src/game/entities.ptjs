@@ -1,0 +1,295 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.entities) {
+    return;
+  }
+
+  doom.entities = {};
+
+  doom.entities.spawnDemo = function () {
+    return [
+      {
+        id: "imp_a",
+        kind: "enemy",
+        glyph: "M",
+        x: 6.5,
+        y: 2.5,
+        hp: 30,
+        speed: 0.78,
+        damage: 5,
+        alive: true,
+        cooldown: 0
+      },
+      {
+        id: "imp_b",
+        kind: "enemy",
+        glyph: "M",
+        x: 10.5,
+        y: 6.5,
+        hp: 32,
+        speed: 0.72,
+        damage: 6,
+        alive: true,
+        cooldown: 0
+      },
+      {
+        id: "imp_c",
+        kind: "enemy",
+        glyph: "M",
+        x: 11.5,
+        y: 11.5,
+        hp: 36,
+        speed: 0.70,
+        damage: 7,
+        alive: true,
+        cooldown: 0
+      },
+      {
+        id: "medkit_a",
+        kind: "pickup",
+        glyph: "+",
+        subtype: "medkit",
+        x: 5.5,
+        y: 4.5,
+        amount: 25,
+        alive: true
+      },
+      {
+        id: "ammo_a",
+        kind: "pickup",
+        glyph: "*",
+        subtype: "ammo",
+        x: 8.5,
+        y: 3.5,
+        amount: 8,
+        alive: true
+      },
+      {
+        id: "armor_a",
+        kind: "pickup",
+        glyph: "A",
+        subtype: "armor",
+        x: 11.5,
+        y: 9.5,
+        amount: 20,
+        alive: true
+      }
+    ];
+  };
+
+  doom.entities.visibleLine = function (map, x1, y1, x2, y2) {
+    var distance = doom.util.distance(x1, y1, x2, y2);
+    var steps = Math.max(1, Math.ceil(distance / 0.10));
+    var idx;
+    for (idx = 1; idx < steps; idx++) {
+      var ratio = idx / steps;
+      var x = x1 + (x2 - x1) * ratio;
+      var y = y1 + (y2 - y1) * ratio;
+      if (doom.world.isWall(map, x, y)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  doom.entities.enemyCount = function (state) {
+    return state.entities.filter(function (item) {
+      return item.kind === "enemy";
+    }).length;
+  };
+
+  doom.entities.aliveEnemies = function (state) {
+    return state.entities.filter(function (item) {
+      return item.kind === "enemy" && item.alive !== false;
+    });
+  };
+
+  doom.entities.pickupCount = function (state) {
+    return state.entities.filter(function (item) {
+      return item.kind === "pickup";
+    }).length;
+  };
+
+  doom.entities.collectPickup = function (state, entity) {
+    if (entity.alive === false) {
+      return;
+    }
+    entity.alive = false;
+    state.stats.pickups += 1;
+    if (entity.subtype === "medkit") {
+      state.player.health = doom.util.clamp(state.player.health + entity.amount, 0, 100);
+      state.message = "Medkit + " + entity.amount;
+    } else if (entity.subtype === "ammo") {
+      state.player.ammo += entity.amount;
+      state.message = "Municao + " + entity.amount;
+    } else if (entity.subtype === "armor") {
+      state.player.armor = doom.util.clamp(state.player.armor + entity.amount, 0, 100);
+      state.message = "Armadura + " + entity.amount;
+    }
+    if (doom.audio && doom.audio.fx) {
+      doom.audio.fx.pickup();
+    }
+  };
+
+  doom.entities.tryCollect = function (state) {
+    var idx;
+    for (idx = 0; idx < state.entities.length; idx++) {
+      var entity = state.entities[idx];
+      if (entity.kind !== "pickup" || entity.alive === false) {
+        continue;
+      }
+      if (doom.util.distance(state.player.x, state.player.y, entity.x, entity.y) < 0.65) {
+        doom.entities.collectPickup(state, entity);
+      }
+    }
+  };
+
+  doom.entities.updateEnemy = function (state, entity, dt) {
+    var player = state.player;
+    var distance = doom.util.distance(entity.x, entity.y, player.x, player.y);
+    var angle = Math.atan2(player.y - entity.y, player.x - entity.x);
+
+    entity.cooldown = Math.max(0, (entity.cooldown || 0) - dt);
+    entity.angle = angle;
+
+    if (!doom.entities.visibleLine(state.map, entity.x, entity.y, player.x, player.y)) {
+      return;
+    }
+
+    if (distance > 1.05 && distance < 7.0) {
+      doom.player.tryMove(
+        entity,
+        state.map,
+        Math.cos(angle) * entity.speed * dt,
+        Math.sin(angle) * entity.speed * dt
+      );
+    }
+
+    if (distance <= 1.35 && entity.cooldown <= 0) {
+      var damage = entity.damage;
+      var armorAbsorb = Math.min(player.armor, Math.floor(damage / 2));
+      player.armor -= armorAbsorb;
+      player.health = Math.max(0, player.health - (damage - armorAbsorb));
+      entity.cooldown = 1.15;
+      state.damage_flash = 3;
+      state.message = "Voce sofreu " + (damage - armorAbsorb) + " de dano";
+      if (doom.audio && doom.audio.fx) {
+        doom.audio.fx.hurt();
+      }
+    }
+  };
+
+  doom.entities.pickTarget = function (state) {
+    var best = null;
+    var bestScore = Infinity;
+    var idx;
+    for (idx = 0; idx < state.entities.length; idx++) {
+      var entity = state.entities[idx];
+      if (entity.kind !== "enemy" || entity.alive === false) {
+        continue;
+      }
+      var dx = entity.x - state.player.x;
+      var dy = entity.y - state.player.y;
+      var distance = Math.sqrt(dx * dx + dy * dy);
+      var angle = Math.atan2(dy, dx);
+      var delta = Math.abs(doom.util.angleDiff(angle, state.player.angle));
+      if (delta > 0.22) {
+        continue;
+      }
+      if (!doom.entities.visibleLine(state.map, state.player.x, state.player.y, entity.x, entity.y)) {
+        continue;
+      }
+      var score = delta * 10 + distance;
+      if (score < bestScore) {
+        bestScore = score;
+        best = entity;
+      }
+    }
+    return best;
+  };
+
+  doom.entities.fire = function (state) {
+    if (state.mode !== "playing") {
+      return false;
+    }
+    if (state.player.cooldown > 0) {
+      return false;
+    }
+    if (state.player.ammo <= 0) {
+      state.message = "Sem municao";
+      return false;
+    }
+
+    state.player.ammo -= 1;
+    state.player.cooldown = 0.35;
+    state.weapon_flash = 2;
+    state.weapon_kick = 3;
+    state.stats.shots += 1;
+    if (doom.audio && doom.audio.fx) {
+      doom.audio.fx.shot();
+    }
+
+    var target = doom.entities.pickTarget(state);
+    if (!target) {
+      state.message = "Tiro errou";
+      return false;
+    }
+
+    target.hp -= 40;
+    state.stats.hits += 1;
+    if (target.hp <= 0) {
+      target.alive = false;
+      state.stats.kills += 1;
+      state.message = "Inimigo abatido";
+      if (doom.audio && doom.audio.fx) {
+        doom.audio.fx.hit();
+      }
+    } else {
+      state.message = "Acerto confirmado";
+      if (doom.audio && doom.audio.fx) {
+        doom.audio.fx.hit();
+      }
+    }
+    return true;
+  };
+
+  doom.entities.update = function (state, dt) {
+    var idx;
+
+    state.player.cooldown = Math.max(0, state.player.cooldown - dt);
+    state.weapon_flash = Math.max(0, state.weapon_flash - 1);
+    state.weapon_kick = Math.max(0, state.weapon_kick - 1);
+    state.damage_flash = Math.max(0, state.damage_flash - 1);
+
+    for (idx = 0; idx < state.entities.length; idx++) {
+      var entity = state.entities[idx];
+      if (entity.kind === "enemy" && entity.alive !== false) {
+        doom.entities.updateEnemy(state, entity, dt);
+      }
+    }
+
+    doom.entities.tryCollect(state);
+
+    if (state.player.health <= 0) {
+      state.mode = "game_over";
+      state.message = "Voce morreu";
+      if (doom.audio && doom.audio.fx) {
+        doom.audio.fx.death();
+      }
+      return;
+    }
+
+    if (
+      doom.entities.aliveEnemies(state).length === 0 &&
+      doom.world.isExit(state.map, state.player.x, state.player.y)
+    ) {
+      state.mode = "victory";
+      state.message = "Saida alcancada";
+      if (doom.audio && doom.audio.fx) {
+        doom.audio.fx.victory();
+      }
+    }
+  };
+})(globalThis);

@@ -1,0 +1,58 @@
+{
+  "tasks": [
+    {
+      "id": "cron-1773927459857.276-178",
+      "kind": "agent",
+      "expression": "5s",
+      "payload": "status da memoria",
+      "meta": {
+        "model": "ptjs-router"
+      },
+      "enabled": true,
+      "next_ms": 1773927659145.202,
+      "created_at_ms": 1773927459857.293
+    }
+  ],
+  "runs": [
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927472567.144,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927477844.946,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927483121.962,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927545741.135,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927551024.833,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927556366.573,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927648855.334,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    },
+    {
+      "task_id": "cron-1773927459857.276-178",
+      "ran_at_ms": 1773927654152.351,
+      "output": "NullClaw PTJS online.\nprovider=openai-codex model=ptjs-router reason=pinned\nworkspace=/home/user/Documents/Huke/GatoCore/samples/nullclaw_workspace\nmemory_hits=0"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+definir tmp_scan como "./tmp_scan_engine.bin"
+definir tmp_restaurado como "./tmp_scan_engine.restored"
+definir tmp_quarentena como "./tmp_quarentena_engine"
+
+definir limpar_scan como arquivo_existe(tmp_scan) ? apagar_arquivo(tmp_scan) : null
+definir limpar_restaurado como arquivo_existe(tmp_restaurado) ? apagar_arquivo(tmp_restaurado) : null
+definir qdir como workspace(tmp_quarentena)
+definir criar_qdir como qdir.criar_diretorio(".", 1)
+definir limpar_quarentena como qdir.existe("sample.bin") ? qdir.remover("sample.bin") : null
+
+definir engine como motor_varredura({ quarentena: tmp_quarentena })
+definir add_sig como engine.adicionar_assinatura(assinatura_binaria("assinatura_mz", "MZ"))
+definir add_heur como engine.adicionar_heuristica(heuristica("texto_evil", "evil"))
+
+definir escrever_bin como escrever_texto(tmp_scan, "MZevil")
+definir scan como engine.varrer_arquivo(tmp_scan)
+mostrar scan.ok
+mostrar scan.valor.veredicto
+mostrar scan.valor.correspondencias.length
+
+definir banco_path como "./tmp_scan_db.json"
+definir limpar_banco como arquivo_existe(banco_path) ? apagar_arquivo(banco_path) : null
+definir escrever_banco como escrever_texto(banco_path, JSON.stringify({
+  assinaturas: [
+    { nome: "assinatura_txt", padrao: "evil" }
+  ],
+  heuristicas: [
+    { nome: "heuristica_bin", regra: "MZ" }
+  ]
+}))
+definir atualizado como atualizar_banco(banco_path, engine)
+mostrar atualizado.ok
+mostrar engine.assinaturas.length
+mostrar engine.heuristicas.length
+
+definir movido como engine.isolar(tmp_scan, "sample.bin")
+mostrar movido.ok
+mostrar arquivo_existe(tmp_scan)
+mostrar qdir.existe("sample.bin")
+
+definir restaurado como engine.restaurar(movido.valor, tmp_restaurado)
+mostrar restaurado.ok
+mostrar arquivo_existe(tmp_restaurado)
+
+definir fim_restaurado como apagar_arquivo(tmp_restaurado)
+definir fim_banco como apagar_arquivo(banco_path)
+definir fim_qdir como qdir.remover(".")

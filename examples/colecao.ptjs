@@ -1,0 +1,11 @@
+função somar(itens) faça
+  definir total como 0
+
+  para cada item em itens faça
+    total = total + item
+  fim
+
+  retornar total
+fim
+
+mostrar somar([1, 2, 3, 4])

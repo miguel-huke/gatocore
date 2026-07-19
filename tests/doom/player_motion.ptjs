@@ -1,0 +1,9 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir state como doom.state.createDemo()
+definir input como { forward: 1 }
+definir descarte como doom.player.step(state.player, state.map, input, 0.5)
+
+mostrar doom.util.round2(state.player.x)
+mostrar doom.util.round2(state.player.y)
+mostrar doom.world.isWall(state.map, state.player.x, state.player.y)

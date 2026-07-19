@@ -1,0 +1,30 @@
+definir jogador como entidade("jogador-1", {
+  posicao: vetor2(4, 5),
+  nome: "Gato"
+})
+
+definir vida como componente("vida", 100)
+definir cena_base como cena("arena", [jogador])
+definir camera_principal como camera({ zoom: 2, alvo: jogador.id })
+definir mochila como inventario(["chave", "pocao"])
+definir ranking como placar([
+  { nome: "ana", pontos: 12 },
+  { nome: "bia", pontos: 9 }
+])
+definir estado como estado_jogo({ fase: "arena", pontos: 12 })
+definir checkpoint_entrada como checkpoint("entrada", {
+  fase: "arena",
+  x: 4,
+  y: 5
+})
+definir foto como snapshot("apos_spawn", cena_base)
+
+mostrar jogador.id
+mostrar vida.nome + ":" + vida.valor
+mostrar cena_base.nome
+mostrar camera_principal.zoom
+mostrar mochila.itens[0]
+mostrar ranking.entradas[0].nome
+mostrar estado.valor.fase
+mostrar checkpoint_entrada.nome
+mostrar foto.nome

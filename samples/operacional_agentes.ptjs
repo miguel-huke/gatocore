@@ -1,0 +1,17 @@
+definir cfg como configuracao("dev", { porta: 3000, perfil: "local" })
+definir ctx como contexto({ projeto: "GatoCore", modulo: "demo" })
+definir s como sessao("sessao-demo", { usuario: "tester" })
+definir manifesto_app como manifesto({ nome: "pacote-demo", versao: "0.1.0" })
+definir skill_demo como skill({ nome: "scanner", dominio: "seguranca" })
+definir workflow_demo como workflow({ nome: "build-ptjs", etapas: 3 })
+definir prov como provedor("local", { latencia_ms: 12 })
+definir modelo_demo como modelo({ nome: "toy-local" })
+
+mostrar cfg.nome
+mostrar ctx.projeto
+mostrar s.id
+mostrar manifesto_app.nome
+mostrar skill_demo.nome
+mostrar workflow_demo.nome
+mostrar prov.nome
+mostrar modelo_demo.configuracao.nome

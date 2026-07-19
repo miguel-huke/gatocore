@@ -1,0 +1,13 @@
+definir valor como 0
+
+se valor então
+  mostrar "nao"
+senão
+  mostrar "sim"
+fim
+
+definir contador como 2
+enquanto contador faça
+  mostrar contador
+  contador = contador - 1
+fim

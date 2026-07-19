@@ -1,0 +1,5 @@
+definir lista como [1, 2]
+definir vazio como null
+
+mostrar tipo de lista
+mostrar tipo de vazio

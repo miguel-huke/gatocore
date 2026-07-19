@@ -1,0 +1,8 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir wad como doom.wad.parseBytes(doom.wad.fixtureBytes(), "fixture://doom_ptjs")
+mostrar wad.identification
+mostrar wad.lump_count
+mostrar wad.lumps[0].name
+mostrar wad.lumps[1].name
+mostrar doom.wad.find(wad, "E1M1").size

@@ -1,0 +1,97 @@
+incluir("./bootstrap/load_all.ptjs")
+
+function cmd_help() {
+  mostrar("Doom PTJS");
+  mostrar("Comandos:");
+  mostrar("  demo");
+  mostrar("  demo-janela");
+  mostrar("  frame");
+  mostrar("  wad-selftest");
+  mostrar("  wad-info <arquivo.wad>");
+  mostrar("  profiler");
+  mostrar("  diagnostico-video");
+  mostrar("Controles do demo:");
+  mostrar("  ENTER ou ESPACO inicia");
+  mostrar("  WASD move | Q/E strafe | ESPACO atira | M mapa | R reinicia | X sai");
+}
+
+function cmd_frame() {
+  var state = doom.state.createDemo();
+  escrever(doom.render.frame(state, doom.config.static_frame_width, doom.config.static_frame_height) + "\n");
+}
+
+function cmd_wad_selftest() {
+  var wad = doom.wad.parseBytes(doom.wad.fixtureBytes(), "fixture://doom_ptjs");
+  var info = doom.wad.summaryLines(wad);
+  var idx;
+  for (idx = 0; idx < info.length; idx++) {
+    mostrar(info[idx]);
+  }
+}
+
+function cmd_wad_info(path) {
+  var wad = doom.wad.load(path);
+  var info = doom.wad.summaryLines(wad);
+  var idx;
+  for (idx = 0; idx < info.length; idx++) {
+    mostrar(info[idx]);
+  }
+}
+
+function cmd_profiler() {
+  var state = doom.state.createDemo();
+  var idx;
+  for (idx = 0; idx < 10; idx++) {
+    doom.profiler.measure("render", function () {
+      doom.render.frame(state, doom.config.profiler_frame_width, doom.config.profiler_frame_height);
+    });
+    doom.profiler.measure("update", function () {
+      doom.runtime.step(state, { forward: 1, turn_right: idx % 2 }, 0.05);
+    });
+  }
+  var report = doom.profiler.reportLines();
+  for (idx = 0; idx < report.length; idx++) {
+    mostrar(report[idx]);
+  }
+}
+
+function cmd_diagnostico_video() {
+  mostrar("backend=" + doom.window.backend());
+  mostrar("suporte=" + doom.window.supported());
+  if (!doom.window.supported()) {
+    mostrar("motivo=" + doom.window.describeFailure());
+  }
+  mostrar("audio=" + doom.audio.available());
+}
+
+var args = doom.util.cleanArgv();
+var command = args[0] || "demo";
+
+if (command === "help") {
+  cmd_help();
+} else if (command === "frame") {
+  cmd_frame();
+} else if (command === "wad-selftest") {
+  cmd_wad_selftest();
+} else if (command === "wad-info") {
+  if (args.length < 2) {
+    mostrar("erro: informe um arquivo .wad");
+  } else {
+    cmd_wad_info(args[1]);
+  }
+} else if (command === "profiler") {
+  cmd_profiler();
+} else if (command === "diagnostico-video") {
+  cmd_diagnostico_video();
+} else if (command === "demo") {
+  doom.runtime.playTerminal(doom.state.createTerminalDemo(), doom.config.screen_width, doom.config.screen_height);
+} else if (command === "demo-janela") {
+  doom.runtime.playTerminal(
+    doom.state.createTerminalDemo(),
+    doom.config.screen_width,
+    doom.config.screen_height,
+    { require_window: true }
+  );
+} else {
+  cmd_help();
+}

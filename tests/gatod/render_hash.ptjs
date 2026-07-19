@@ -1,0 +1,4 @@
+incluir("../../samples/gatod_engine/src/bootstrap/load_all.ptjs")
+
+definir project como gatod.engine.createProject()
+mostrar gatod.util.fnv1aBytes(gatod.render.frame(project))

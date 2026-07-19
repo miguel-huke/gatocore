@@ -1,0 +1,20 @@
+(function (global) {
+  "use strict";
+
+  var gatod = global.gatod;
+  if (!gatod || gatod.config) {
+    return;
+  }
+
+  gatod.config = {
+    editor_width: 640,
+    editor_height: 360,
+    editor_scale: 2,
+    viewport_width: 320,
+    viewport_height: 180,
+    viewport_scale: 3,
+    target_frame_ms: 33,
+    world_width: 320,
+    world_height: 180
+  };
+})(globalThis);

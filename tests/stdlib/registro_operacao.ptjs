@@ -1,0 +1,16 @@
+definir antes como capturar_pacote("eth0")
+mostrar antes.ok
+mostrar antes.erro.codigo
+
+definir reg como registrar("capturar_pacote", function (iface) {
+  return {
+    tipo_recurso: "captura_teste",
+    interface: iface,
+    ativo: true
+  }
+})
+mostrar reg.ok
+
+definir depois como capturar_pacote("eth0")
+mostrar depois.interface
+mostrar depois.ativo

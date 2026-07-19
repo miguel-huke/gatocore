@@ -1,0 +1,5 @@
+função principal faça
+  retornar observar "abc"
+fim
+
+mostrar principal()

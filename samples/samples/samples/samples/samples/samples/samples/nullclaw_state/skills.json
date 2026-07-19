@@ -1,0 +1,32 @@
+[
+  {
+    "nome": "workspace-bootstrap",
+    "fonte": "builtin",
+    "descricao": "Gerencia bootstrap markdown e arquivos da workspace.",
+    "comandos": [
+      "workspace edit",
+      "workspace reset-md"
+    ]
+  },
+  {
+    "nome": "memory-recall",
+    "fonte": "builtin",
+    "descricao": "Exibe memoria recente e busca semantica local.",
+    "comandos": [
+      "memory search",
+      "memory list",
+      "history show"
+    ]
+  },
+  {
+    "nome": "ops-heartbeat",
+    "fonte": "builtin",
+    "descricao": "Executa heartbeat, cron e status operacional.",
+    "comandos": [
+      "gateway",
+      "cron list",
+      "status",
+      "doctor"
+    ]
+  }
+]

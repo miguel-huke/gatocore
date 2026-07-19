@@ -1,0 +1,21 @@
+definir r como resultado(1, "ok")
+mostrar r.ok
+mostrar r.valor
+
+definir posicao como vetor2(3, 4)
+mostrar posicao.x + posicao.y
+
+mostrar tokenizar("Ola, mundo do gato!").join("|")
+
+definir idx como indice_vetorial([
+  "gato branco curioso",
+  "roteamento bgp tcp",
+  "snake ascii terminal"
+])
+mostrar vizinho_proximo(idx, "gato", 1)[0].item
+
+definir cliente como http("https://example.com")
+mostrar cliente.base_url
+
+definir https como porta(443)
+mostrar https.segura

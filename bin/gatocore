@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+resolve_path() {
+  local source_path="$1"
+  while [[ -L "$source_path" ]]; do
+    local dir
+    dir="$(cd "$(dirname "$source_path")" && pwd)"
+    source_path="$(readlink "$source_path")"
+    [[ "$source_path" != /* ]] && source_path="$dir/$source_path"
+  done
+  cd "$(dirname "$source_path")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_path "${BASH_SOURCE[0]}")"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENGINE_DIR="$ROOT_DIR/engines/quickjs"
+QJS="$ENGINE_DIR/qjs"
+PT_STDLIB="$ROOT_DIR/stdlib/ptstdlib.js"
+PT_NATIVE="$ROOT_DIR/compiler/ptjs_native.js"
+
+build_engine() {
+  make -C "$ENGINE_DIR" qjs >/dev/null
+}
+
+run_native_compiler() {
+  build_engine
+  "$QJS" --std "$PT_NATIVE" --root "$ROOT_DIR" "$@"
+}
+
+usage() {
+  cat <<'EOF'
+Uso:
+  gatocore build
+  gatocore test
+  gatocore demo
+  gatocore repl
+  gatocore eval 'mostrar 1'
+  gatocore run arquivo.ptjs [args...]
+  gatocore ir arquivo.ptjs [saida.json]
+  gatocore asm arquivo.ptjs [saida.s]
+  gatocore native-build arquivo.ptjs [saida]
+  gatocore native-run arquivo.ptjs [args...]
+  gatocore jit arquivo.ptjs [args...]
+  gatocore bench [arquivo.ptjs] [iteracoes]
+  gatocore termos
+  gatocore version
+  gatocore help
+
+Atalho:
+  gatocore arquivo.ptjs [args...]
+EOF
+}
+
+run_file() {
+  local file="$1"
+  shift || true
+  build_engine
+  exec "$QJS" --std --lang=pt -I "$PT_STDLIB" "$file" "$@"
+}
+
+cmd="${1:-help}"
+
+case "$cmd" in
+  help|-h|--help)
+    usage
+    ;;
+  build)
+    build_engine
+    ;;
+  test)
+    exec make -C "$ROOT_DIR" test
+    ;;
+  demo)
+    build_engine
+    exec "$ROOT_DIR/tools/demo_examples.sh"
+    ;;
+  repl)
+    build_engine
+    exec "$QJS" --std --lang=pt -I "$PT_STDLIB" -i
+    ;;
+  eval)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: codigo esperado para eval\n' >&2
+      exit 1
+    fi
+    build_engine
+    exec "$QJS" --std --lang=pt -I "$PT_STDLIB" -e "$1"
+    ;;
+  run)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: arquivo esperado para run\n' >&2
+      exit 1
+    fi
+    run_file "$@"
+    ;;
+  ir)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: arquivo esperado para ir\n' >&2
+      exit 1
+    fi
+    if [[ $# -ge 2 ]]; then
+      run_native_compiler ir --input "$1" --output "$2"
+      exit $?
+    fi
+    run_native_compiler ir --input "$1" --stdout
+    exit $?
+    ;;
+  asm)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: arquivo esperado para asm\n' >&2
+      exit 1
+    fi
+    if [[ $# -ge 2 ]]; then
+      run_native_compiler asm --input "$1" --output "$2"
+      exit $?
+    fi
+    run_native_compiler asm --input "$1" --stdout
+    exit $?
+    ;;
+  native-build)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: arquivo esperado para native-build\n' >&2
+      exit 1
+    fi
+    output="${2:-${1%.*}.native}"
+    run_native_compiler native-build --input "$1" --output "$output"
+    exit $?
+    ;;
+  native-run|jit)
+    shift || true
+    if [[ $# -lt 1 ]]; then
+      printf 'gatocore: arquivo esperado para %s\n' "$cmd" >&2
+      exit 1
+    fi
+    input="$1"
+    shift || true
+    tmpdir="$(mktemp -d)"
+    bin="$tmpdir/programa.native"
+    cleanup_native_run() {
+      rm -rf "$tmpdir"
+    }
+    trap cleanup_native_run EXIT
+    run_native_compiler native-build --input "$input" --output "$bin"
+    set +e
+    "$bin" "$@"
+    status=$?
+    set -e
+    exit "$status"
+    ;;
+  bench)
+    shift || true
+    build_engine
+    exec "$ROOT_DIR/tools/benchmark_pt.sh" "${1:-}" "${2:-100}"
+    ;;
+  termos)
+    build_engine
+    exec "$QJS" --std --lang=pt -I "$PT_STDLIB" -e 'mostrar gatocore.listar_termos().length'
+    ;;
+  version)
+    build_engine
+    printf 'GatoCore alpha funcional local\n'
+    printf 'Stdlib tecnica: %s\n' "${PT_STDLIB#$ROOT_DIR/}"
+    printf 'Backend nativo: %s\n' "${PT_NATIVE#$ROOT_DIR/}"
+    printf 'QuickJS %s\n' "$(cat "$ENGINE_DIR/VERSION")"
+    ;;
+  *)
+    if [[ -f "$cmd" ]]; then
+      shift || true
+      run_file "$cmd" "$@"
+    else
+      printf 'gatocore: comando ou arquivo desconhecido: %s\n' "$cmd" >&2
+      printf '\n' >&2
+      usage >&2
+      exit 1
+    fi
+    ;;
+esac

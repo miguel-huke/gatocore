@@ -1,0 +1,41 @@
+função soma(a, b) faça
+  retornar a + b
+fim
+
+função fat(n) faça
+  se n <= 1 então
+    retornar 1
+  senão
+    retornar n * fat(n - 1)
+  fim
+fim
+
+definir rotulo como "ptjs nativo"
+definir total como soma(20, 22)
+definir acumulado como 0
+definir grade como [[1, 2], [3, 4]]
+
+mostrar rotulo
+mostrar total
+mostrar tipo de total
+mostrar tamanho de rotulo
+mostrar observar total
+mostrar identificar rotulo
+mostrar fat(5)
+mostrar tipo de grade
+mostrar tamanho de grade
+
+para cada linha em grade faça
+  para cada item em linha faça
+    acumulado = acumulado + item
+  fim
+fim
+
+mostrar acumulado
+mostrar verdadeiro
+mostrar falso
+mostrar nulo
+
+para cada letra em "ptjs" faça
+  mostrar letra
+fim

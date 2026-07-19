@@ -1,0 +1,12 @@
+definir contador como 3
+
+enquanto contador faça
+  mostrar contador
+  contador = contador - 1
+fim
+
+se contador então
+  mostrar "nao deve aparecer"
+senão
+  mostrar "fim do laco"
+fim

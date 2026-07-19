@@ -1,0 +1,89 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.window) {
+    return;
+  }
+
+  doom.window = {
+    session: null,
+    last_error: ""
+  };
+
+  doom.window.backend = function () {
+    if (typeof video_backend === "function") {
+      return String(video_backend());
+    }
+    return "indisponivel";
+  };
+
+  doom.window.supported = function () {
+    if (typeof video_suportado !== "function") {
+      doom.window.last_error = "backend de video nao disponivel no host";
+      return false;
+    }
+    if (!video_suportado()) {
+      doom.window.last_error = doom.window.describeFailure();
+      return false;
+    }
+    doom.window.last_error = "";
+    return true;
+  };
+
+  doom.window.open = function (width, height, scale, title) {
+    if (doom.window.session && doom.window.session.active) {
+      return true;
+    }
+    if (!doom.window.supported()) {
+      return false;
+    }
+    if (!video_abrir(width, height, scale || 1, title || "Doom PTJS")) {
+      doom.window.last_error = doom.window.describeFailure();
+      return false;
+    }
+    doom.window.session = {
+      active: true,
+      width: width,
+      height: height,
+      scale: scale || 1,
+      backend: doom.window.backend()
+    };
+    doom.window.last_error = "";
+    return true;
+  };
+
+  doom.window.present = function (bytes) {
+    if (!doom.window.session || !doom.window.session.active) {
+      return false;
+    }
+    return !!video_apresentar(bytes);
+  };
+
+  doom.window.readInput = function () {
+    if (!doom.window.session || !doom.window.session.active) {
+      return {};
+    }
+    return video_entrada();
+  };
+
+  doom.window.close = function () {
+    if (typeof video_fechar === "function") {
+      video_fechar();
+    }
+    doom.window.session = null;
+  };
+
+  doom.window.describeFailure = function () {
+    if (typeof video_erro === "function") {
+      var error = String(video_erro() || "");
+      if (error) {
+        return error;
+      }
+    }
+    if (doom.window.last_error) {
+      return doom.window.last_error;
+    }
+    return "janela grafica indisponivel";
+  };
+})(globalThis);

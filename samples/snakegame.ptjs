@@ -1,0 +1,156 @@
+definir largura como 24
+definir altura como 14
+definir cobra como [
+  { x: 6, y: 7 },
+  { x: 5, y: 7 },
+  { x: 4, y: 7 }
+]
+definir dx como 1
+definir dy como 0
+definir comida como { x: 16, y: 7 }
+definir rodando como 1
+definir mensagem como "WASD move | X sai"
+
+função mesma_posicao(a, b) faça
+  retornar a.x === b.x && a.y === b.y
+fim
+
+função corpo_contem(posicao, ignorar_cabeca) faça
+  definir i como ignorar_cabeca ? 1 : 0
+  enquanto i < tamanho de cobra faça
+    se mesma_posicao(cobra[i], posicao) então
+      retornar 1
+    fim
+    i = i + 1
+  fim
+  retornar 0
+fim
+
+função comida_aleatoria() faça
+  enquanto 1 faça
+    definir posicao como {
+      x: Math.floor(Math.random() * largura),
+      y: Math.floor(Math.random() * altura)
+    }
+    se !corpo_contem(posicao, 0) então
+      retornar posicao
+    fim
+  fim
+fim
+
+função processar_tecla(tecla) faça
+  se tecla === null então
+    retornar
+  fim
+
+  se tecla.indexOf("w") >= 0 && dy !== 1 então
+    dx = 0
+    dy = -1
+    retornar
+  fim
+
+  se tecla.indexOf("s") >= 0 && dy !== -1 então
+    dx = 0
+    dy = 1
+    retornar
+  fim
+
+  se tecla.indexOf("a") >= 0 && dx !== 1 então
+    dx = -1
+    dy = 0
+    retornar
+  fim
+
+  se tecla.indexOf("d") >= 0 && dx !== -1 então
+    dx = 1
+    dy = 0
+    retornar
+  fim
+
+  se tecla.indexOf("x") >= 0 então
+    mensagem = "Jogo encerrado pelo usuario"
+    rodando = 0
+  fim
+fim
+
+função desenhar() faça
+  definir texto como ""
+  definir y como 0
+
+  limpar_tela()
+  mover_cursor(1, 1)
+
+  texto = texto + "GATOCORE SNAKE LIVE\n"
+  texto = texto + mensagem + "\n"
+  texto = texto + "Pontos: " + (tamanho de cobra - 3) + "\n"
+  texto = texto + "+" + "-".repeat(largura) + "+\n"
+
+  enquanto y < altura faça
+    definir linha como "|"
+    definir x como 0
+
+    enquanto x < largura faça
+      definir caractere como " "
+      definir i como 0
+
+      se comida.x === x && comida.y === y então
+        caractere = "@"
+      fim
+
+      enquanto i < tamanho de cobra faça
+        se cobra[i].x === x && cobra[i].y === y então
+          caractere = i === 0 ? "O" : "o"
+        fim
+        i = i + 1
+      fim
+
+      linha = linha + caractere
+      x = x + 1
+    fim
+
+    texto = texto + linha + "|\n"
+    y = y + 1
+  fim
+
+  texto = texto + "+" + "-".repeat(largura) + "+\n"
+  escrever(texto)
+fim
+
+definir init_ocultar_cursor como ocultar_cursor()
+definir init_terminal_cru como ativar_terminal_cru()
+definir init_desenho como desenhar()
+
+enquanto rodando faça
+  definir tecla como ler_tecla(0)
+  definir descarte_tecla como processar_tecla(tecla)
+
+  se rodando então
+    definir cabeca como cobra[0]
+    definir proxima como { x: cabeca.x + dx, y: cabeca.y + dy }
+
+    se proxima.x < 0 || proxima.x >= largura || proxima.y < 0 || proxima.y >= altura então
+      mensagem = "Fim de jogo: bateu na parede"
+      rodando = 0
+    senão
+      se corpo_contem(proxima, 0) então
+        mensagem = "Fim de jogo: bateu em si"
+        rodando = 0
+      senão
+        cobra.unshift(proxima)
+        se mesma_posicao(proxima, comida) então
+          comida = comida_aleatoria()
+          mensagem = "Boa! comida coletada"
+        senão
+          cobra.pop()
+        fim
+      fim
+    fim
+  fim
+
+  definir descarte_desenho como desenhar()
+  definir descarte_espera como esperar(120)
+fim
+
+definir fim_mostrar_cursor como mostrar_cursor()
+definir fim_terminal_cru como desativar_terminal_cru()
+definir fim_saida como escrever("\n" + mensagem + "\n")

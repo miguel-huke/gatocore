@@ -1,0 +1,44 @@
+mostrar capturar_pacote("eth0").erro.codigo
+
+definir reg_captura como registrar("capturar_pacote", function (iface) {
+  return {
+    tipo_recurso: "captura_teste",
+    interface: iface,
+    ativo: true,
+    pacotes: 2
+  }
+})
+mostrar reg_captura.ok
+
+definir captura como capturar_pacote("eth0")
+mostrar captura.interface
+mostrar captura.ativo
+
+definir radio_wifi como wifi({
+  interface: "wlan0",
+  canais: [1, 6, 11],
+  modo: "monitor"
+})
+mostrar radio_wifi.interface
+mostrar radio_wifi.canais.join(",")
+
+definir reg_socket como registrar("abrir_socket", function (proto) {
+  return {
+    tipo_recurso: "socket_teste",
+    protocolo: proto,
+    estado: "aberto"
+  }
+})
+mostrar abrir_socket("tcp").estado
+
+definir reg_ebpf como registrar("anexar_ebpf", function (probe, programa) {
+  return resultado(1, {
+    probe: probe,
+    programa: programa,
+    anexado: true
+  })
+})
+
+definir hook como anexar_ebpf("tracepoint/sys_enter", "contador")
+mostrar hook.ok
+mostrar hook.valor.probe

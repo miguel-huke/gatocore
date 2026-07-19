@@ -1,0 +1,5 @@
+função parar() faça
+  retornar
+fim
+
+mostrar parar()

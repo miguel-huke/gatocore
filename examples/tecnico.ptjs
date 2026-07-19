@@ -1,0 +1,12 @@
+definir r como resultado(1, "ok")
+mostrar r.ok
+
+mostrar tokenizar("rede, ia e jogos").join("|")
+
+definir idx como indice_vetorial([
+  "gato curioso",
+  "roteamento tcp",
+  "motor de jogo"
+])
+
+mostrar vizinho_proximo(idx, "gato", 1)[0].item

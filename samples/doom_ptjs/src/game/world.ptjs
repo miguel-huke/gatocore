@@ -1,0 +1,86 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.world) {
+    return;
+  }
+
+  doom.world = {};
+
+  doom.world.makeDemoMap = function () {
+    var rows = [
+      "################",
+      "#..............#",
+      "#..............#",
+      "#...##.........#",
+      "#..............#",
+      "#......##......#",
+      "#..............#",
+      "#...........>..#",
+      "#..............#",
+      "#......##......#",
+      "#..............#",
+      "#.........##...#",
+      "#..............#",
+      "#..............#",
+      "#..............#",
+      "################"
+    ];
+    return {
+      width: rows[0].length,
+      height: rows.length,
+      rows: rows,
+      start_x: 2.5,
+      start_y: 2.5,
+      start_angle: 0,
+      exit_x: 12.5,
+      exit_y: 7.5
+    };
+  };
+
+  doom.world.cell = function (map, x, y) {
+    if (x < 0 || y < 0 || x >= map.width || y >= map.height) {
+      return "#";
+    }
+    return map.rows[y][x];
+  };
+
+  doom.world.isWall = function (map, x, y) {
+    return doom.world.cell(map, Math.floor(x), Math.floor(y)) === "#";
+  };
+
+  doom.world.isExit = function (map, x, y) {
+    return doom.world.cell(map, Math.floor(x), Math.floor(y)) === ">";
+  };
+
+  doom.world.drawMiniMap = function (state) {
+    var map = state.map;
+    var lines = [];
+    var markers = {};
+    var idx;
+    for (idx = 0; idx < state.entities.length; idx++) {
+      var entity = state.entities[idx];
+      if (entity.alive === false) {
+        continue;
+      }
+      markers[Math.floor(entity.x) + ":" + Math.floor(entity.y)] = entity.kind === "enemy" ? "M" : entity.glyph;
+    }
+    var y;
+    for (y = 0; y < map.height; y++) {
+      var line = "";
+      var x;
+      for (x = 0; x < map.width; x++) {
+        if (Math.floor(state.player.x) === x && Math.floor(state.player.y) === y) {
+          line += "@";
+        } else if (markers[x + ":" + y]) {
+          line += markers[x + ":" + y];
+        } else {
+          line += map.rows[y][x];
+        }
+      }
+      lines.push(line);
+    }
+    return lines;
+  };
+})(globalThis);

@@ -1,0 +1,18 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.time) {
+    return;
+  }
+
+  doom.time = {};
+
+  doom.time.nowMs = function () {
+    return doom.util.nowMs();
+  };
+
+  doom.time.deltaSeconds = function (startMs, endMs) {
+    return Math.max(0, (endMs - startMs) / 1000);
+  };
+})(globalThis);

@@ -1,0 +1,12 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir state como doom.state.createDemo()
+state.player.health = 60
+state.player.x = 5.5
+state.player.y = 4.5
+
+definir descarte como doom.entities.update(state, 0.1)
+
+mostrar state.player.health
+mostrar state.stats.pickups
+mostrar state.message

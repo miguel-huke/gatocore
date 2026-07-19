@@ -1,0 +1,9 @@
+incluir("../../samples/gatod_engine/src/bootstrap/load_all.ptjs")
+
+definir project como gatod.engine.createProject()
+definir state como gatod.editor.buildState(project)
+
+mostrar state.title
+mostrar state.toolbar.length
+mostrar state.scene_tree.rows.length
+mostrar state.inspector.title

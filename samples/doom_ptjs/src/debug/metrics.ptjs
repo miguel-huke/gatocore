@@ -1,0 +1,15 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.metrics) {
+    return;
+  }
+
+  doom.metrics = {};
+
+  doom.metrics.recordFrame = function (state, renderMs) {
+    state.metrics.last_render_ms = doom.util.round2(renderMs);
+    state.metrics.frames = (state.metrics.frames || 0) + 1;
+  };
+})(globalThis);

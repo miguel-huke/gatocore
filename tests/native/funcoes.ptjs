@@ -1,0 +1,5 @@
+função soma(a, b) faça
+  retornar a + b
+fim
+
+mostrar soma(2, 3)

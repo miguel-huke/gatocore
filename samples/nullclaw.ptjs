@@ -1,0 +1,1847 @@
+// NullClaw PTJS sample
+// Replica de alto nivel da experiencia do produto, dentro dos limites atuais
+// do runtime PTJS local do GatoCore.
+
+(function () {
+  "use strict";
+
+  var SAMPLE_VERSION = "0.1.0-ptjs";
+  var PRODUCT_NAME = "nullclaw-ptjs";
+
+  function dirnameSimples(path) {
+    var text = String(path || "").replace(/\\/g, "/");
+    var idx = text.lastIndexOf("/");
+    if (idx < 0) {
+      return ".";
+    }
+    if (idx === 0) {
+      return "/";
+    }
+    return text.slice(0, idx);
+  }
+
+  var RAW_ARGV = argumentos();
+  var SCRIPT_ARG = RAW_ARGV.length && /\.ptjs$/i.test(String(RAW_ARGV[0])) ? String(RAW_ARGV[0]) : "samples/nullclaw.ptjs";
+  var CWD_INFO = (typeof os === "object" && os !== null && typeof os.getcwd === "function") ? os.getcwd() : [".", 0];
+  var CWD = Array.isArray(CWD_INFO) ? String(CWD_INFO[0]) : String(CWD_INFO);
+  var SCRIPT_PATH = (/^(\/|[A-Za-z]:[\\/])/.test(SCRIPT_ARG)) ?
+    SCRIPT_ARG.replace(/\\/g, "/") :
+    (CWD.replace(/\\/g, "/").replace(/\/+$/, "") + "/" + SCRIPT_ARG.replace(/\\/g, "/").replace(/^\/+/, ""));
+  var SAMPLE_DIR = dirnameSimples(SCRIPT_PATH);
+  var ROOT = workspace(SAMPLE_DIR);
+  var STATE = workspace(SAMPLE_DIR + "/nullclaw_state");
+  var USER_WS = workspace(SAMPLE_DIR + "/nullclaw_workspace");
+  var EXPORTS = workspace(SAMPLE_DIR + "/nullclaw_exports");
+
+  function linha(texto) {
+    escrever(String(texto == null ? "" : texto) + "\n");
+  }
+
+  function bloco(texto) {
+    linha(texto);
+    linha(repetir("-", String(texto).length));
+  }
+
+  function blank() {
+    linha("");
+  }
+
+  function repetir(texto, vezes) {
+    var out = "";
+    var i = 0;
+    while (i < vezes) {
+      out += texto;
+      i += 1;
+    }
+    return out;
+  }
+
+  function padDir(texto, largura) {
+    var out = String(texto == null ? "" : texto);
+    while (out.length < largura) {
+      out += " ";
+    }
+    return out;
+  }
+
+  function agoraIso(ms) {
+    return new Date(ms || agora_ms()).toISOString();
+  }
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function normalizarNome(texto) {
+    return String(texto == null ? "" : texto)
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "item";
+  }
+
+  function semAspas(texto) {
+    return String(texto == null ? "" : texto).replace(/^"+|"+$/g, "");
+  }
+
+  function temFlag(argv, flag) {
+    return argv.indexOf(flag) >= 0;
+  }
+
+  function valorFlag(argv, flag, padrao) {
+    var idx = argv.indexOf(flag);
+    if (idx >= 0 && idx + 1 < argv.length) {
+      return argv[idx + 1];
+    }
+    return padrao;
+  }
+
+  function numeroFlag(argv, flag, padrao) {
+    var raw = valorFlag(argv, flag, null);
+    if (raw === null || raw === undefined || raw === "") {
+      return padrao;
+    }
+    var n = Number(raw);
+    return isFinite(n) ? n : padrao;
+  }
+
+  function restoApos(argv, termo) {
+    var idx = argv.indexOf(termo);
+    if (idx < 0) {
+      return [];
+    }
+    return argv.slice(idx + 1);
+  }
+
+  function lerJsonOu(ws, caminho, padrao) {
+    var res = ws.ler_json(caminho);
+    if (res.ok) {
+      return res.valor;
+    }
+    return clone(padrao);
+  }
+
+  function escreverJson(ws, caminho, valor) {
+    var res = ws.escrever_json(caminho, valor);
+    if (!res.ok) {
+      linha("erro ao gravar " + caminho + ": " + JSON.stringify(res.erro));
+      sair(1);
+    }
+    return res.valor;
+  }
+
+  function existeArquivo(ws, caminho) {
+    return ws.existe(caminho);
+  }
+
+  function garantirDiretorio(ws, caminho) {
+    var res = ws.criar_diretorio(caminho, 1);
+    if (!res.ok) {
+      linha("erro ao criar diretorio " + caminho + ": " + JSON.stringify(res.erro));
+      sair(1);
+    }
+  }
+
+  function providersCatalog() {
+    return [
+      {
+        nome: "local-ptjs",
+        tipo: "local",
+        modelos: ["ptjs-assistant", "ptjs-router", "ptjs-code", "ptjs-security"],
+        health: "ok",
+        latencia_ms: 12,
+        base_url: null
+      },
+      {
+        nome: "openrouter",
+        tipo: "openai-compatible",
+        modelos: ["openrouter/auto", "anthropic/claude", "openai/gpt-5.4"],
+        health: "config-required",
+        latencia_ms: 240,
+        base_url: "https://openrouter.ai/api/v1"
+      },
+      {
+        nome: "openai-codex",
+        tipo: "oauth",
+        modelos: ["gpt-5.4", "gpt-5.4-mini"],
+        health: "config-required",
+        latencia_ms: 180,
+        base_url: "https://api.openai.com/v1"
+      }
+    ];
+  }
+
+  function builtInSkills() {
+    return [
+      {
+        nome: "workspace-bootstrap",
+        fonte: "builtin",
+        descricao: "Gerencia bootstrap markdown e arquivos da workspace.",
+        comandos: ["workspace edit", "workspace reset-md"]
+      },
+      {
+        nome: "memory-recall",
+        fonte: "builtin",
+        descricao: "Exibe memoria recente e busca semantica local.",
+        comandos: ["memory search", "memory list", "history show"]
+      },
+      {
+        nome: "ops-heartbeat",
+        fonte: "builtin",
+        descricao: "Executa heartbeat, cron e status operacional.",
+        comandos: ["gateway", "cron list", "status", "doctor"]
+      }
+    ];
+  }
+
+  function defaultChannels() {
+    return [
+      { nome: "cli", tipo: "cli", enabled: true, running: true, allowlist: ["local"], health: "ok" },
+      { nome: "telegram", tipo: "chat", enabled: false, running: false, allowlist: [], health: "idle" },
+      { nome: "discord", tipo: "chat", enabled: false, running: false, allowlist: [], health: "idle" },
+      { nome: "signal", tipo: "chat", enabled: false, running: false, allowlist: [], health: "idle" }
+    ];
+  }
+
+  function defaultConfig() {
+    return {
+      app: PRODUCT_NAME,
+      sample_version: SAMPLE_VERSION,
+      installed_at_ms: agora_ms(),
+      provider: "local-ptjs",
+      model: "ptjs-assistant",
+      memory_backend: "json-hybrid",
+      workspace_only: true,
+      allow_public_bind: false,
+      gateway: {
+        host: "127.0.0.1",
+        port: 3000
+      },
+      model_routes: [
+        { nome: "codigo", tokens: ["codigo", "bug", "fix", "patch"], model: "ptjs-code" },
+        { nome: "seguranca", tokens: ["seguranca", "scan", "virus", "clam", "malware"], model: "ptjs-security" },
+        { nome: "padrao", tokens: [], model: "ptjs-assistant" }
+      ],
+      observer: "log",
+      tunnel: "none"
+    };
+  }
+
+  function defaultService() {
+    return {
+      installed: false,
+      running: false,
+      last_started_ms: null,
+      last_stopped_ms: null
+    };
+  }
+
+  function defaultGateway() {
+    return {
+      running: false,
+      host: "127.0.0.1",
+      port: 3000,
+      started_at_ms: null,
+      heartbeat_count: 0,
+      last_healthcheck_ms: null
+    };
+  }
+
+  function defaultAuth() {
+    return [];
+  }
+
+  function defaultHistory() {
+    return [];
+  }
+
+  function defaultMemory() {
+    return [];
+  }
+
+  function defaultCron() {
+    return {
+      tasks: [],
+      runs: []
+    };
+  }
+
+  function ensureBootstrapMarkdown() {
+    var agentsPath = "AGENTS.md";
+    var heartbeatPath = "HEARTBEAT.md";
+    if (!existeArquivo(USER_WS, agentsPath)) {
+      USER_WS.escrever_texto(agentsPath, [
+        "# AGENTS",
+        "",
+        "- Project: nullclaw-ptjs sample workspace",
+        "- Policy: workspace-only by default",
+        "- Preferred mode: concise, operational, auditable",
+        "- Escalate before destructive actions"
+      ].join("\n") + "\n");
+    }
+    if (!existeArquivo(USER_WS, heartbeatPath)) {
+      USER_WS.escrever_texto(heartbeatPath, [
+        "# HEARTBEAT",
+        "",
+        "- Every loop: run due cron tasks",
+        "- Every loop: refresh health routes",
+        "- Every loop: report channel health if requested"
+      ].join("\n") + "\n");
+    }
+  }
+
+  function ensureState() {
+    garantirDiretorio(STATE, ".");
+    garantirDiretorio(USER_WS, ".");
+    garantirDiretorio(EXPORTS, ".");
+
+    if (!existeArquivo(STATE, "config.json")) {
+      escreverJson(STATE, "config.json", defaultConfig());
+    }
+    if (!existeArquivo(STATE, "channels.json")) {
+      escreverJson(STATE, "channels.json", defaultChannels());
+    }
+    if (!existeArquivo(STATE, "service.json")) {
+      escreverJson(STATE, "service.json", defaultService());
+    }
+    if (!existeArquivo(STATE, "gateway.json")) {
+      escreverJson(STATE, "gateway.json", defaultGateway());
+    }
+    if (!existeArquivo(STATE, "auth.json")) {
+      escreverJson(STATE, "auth.json", defaultAuth());
+    }
+    if (!existeArquivo(STATE, "history.json")) {
+      escreverJson(STATE, "history.json", defaultHistory());
+    }
+    if (!existeArquivo(STATE, "memory.json")) {
+      escreverJson(STATE, "memory.json", defaultMemory());
+    }
+    if (!existeArquivo(STATE, "cron.json")) {
+      escreverJson(STATE, "cron.json", defaultCron());
+    }
+    if (!existeArquivo(STATE, "skills.json")) {
+      escreverJson(STATE, "skills.json", builtInSkills());
+    }
+    ensureBootstrapMarkdown();
+  }
+
+  function loadConfig() {
+    return lerJsonOu(STATE, "config.json", defaultConfig());
+  }
+
+  function saveConfig(valor) {
+    escreverJson(STATE, "config.json", valor);
+  }
+
+  function loadChannels() {
+    return lerJsonOu(STATE, "channels.json", defaultChannels());
+  }
+
+  function saveChannels(valor) {
+    escreverJson(STATE, "channels.json", valor);
+  }
+
+  function loadService() {
+    return lerJsonOu(STATE, "service.json", defaultService());
+  }
+
+  function saveService(valor) {
+    escreverJson(STATE, "service.json", valor);
+  }
+
+  function loadGatewayState() {
+    var state = lerJsonOu(STATE, "gateway.json", defaultGateway());
+    if (state.running && state.last_healthcheck_ms && (agora_ms() - state.last_healthcheck_ms) > 3000) {
+      state.running = false;
+    }
+    return state;
+  }
+
+  function saveGatewayState(valor) {
+    escreverJson(STATE, "gateway.json", valor);
+  }
+
+  function loadAuth() {
+    return lerJsonOu(STATE, "auth.json", defaultAuth());
+  }
+
+  function saveAuth(valor) {
+    escreverJson(STATE, "auth.json", valor);
+  }
+
+  function loadHistory() {
+    return lerJsonOu(STATE, "history.json", defaultHistory());
+  }
+
+  function saveHistory(valor) {
+    escreverJson(STATE, "history.json", valor);
+  }
+
+  function loadMemory() {
+    return lerJsonOu(STATE, "memory.json", defaultMemory());
+  }
+
+  function saveMemory(valor) {
+    escreverJson(STATE, "memory.json", valor);
+  }
+
+  function loadCron() {
+    return lerJsonOu(STATE, "cron.json", defaultCron());
+  }
+
+  function saveCron(valor) {
+    escreverJson(STATE, "cron.json", valor);
+  }
+
+  function loadSkills() {
+    return lerJsonOu(STATE, "skills.json", builtInSkills());
+  }
+
+  function saveSkills(valor) {
+    escreverJson(STATE, "skills.json", valor);
+  }
+
+  function parseDuration(texto) {
+    var raw = String(texto || "").trim().toLowerCase();
+    var match = raw.match(/^(\d+)(ms|s|m|h|d)$/);
+    var n;
+    if (!match) {
+      return null;
+    }
+    n = Number(match[1]);
+    switch (match[2]) {
+      case "ms": return n;
+      case "s": return n * 1000;
+      case "m": return n * 60 * 1000;
+      case "h": return n * 60 * 60 * 1000;
+      case "d": return n * 24 * 60 * 60 * 1000;
+    }
+    return null;
+  }
+
+  function nextCronMs(expression, nowMs) {
+    var raw = String(expression || "").trim();
+    var duration = parseDuration(raw);
+    var parts;
+    var every;
+    var minute;
+    var next;
+
+    if (duration != null) {
+      return nowMs + duration;
+    }
+
+    if (raw === "* * * * *") {
+      return nowMs + 60 * 1000;
+    }
+
+    if (/^\*\/\d+ \* \* \* \*$/.test(raw)) {
+      parts = raw.split(" ");
+      every = Number(parts[0].slice(2));
+      return nowMs + every * 60 * 1000;
+    }
+
+    if (/^\d{1,2} \* \* \* \*$/.test(raw)) {
+      minute = Number(raw.split(" ")[0]);
+      next = new Date(nowMs);
+      next.setUTCSeconds(0);
+      next.setUTCMilliseconds(0);
+      next.setUTCMinutes(minute);
+      if (next.getTime() <= nowMs) {
+        next.setUTCHours(next.getUTCHours() + 1);
+      }
+      return next.getTime();
+    }
+
+    if (raw === "0 * * * *") {
+      next = new Date(nowMs);
+      next.setUTCSeconds(0);
+      next.setUTCMilliseconds(0);
+      next.setUTCMinutes(0);
+      next.setUTCHours(next.getUTCHours() + 1);
+      return next.getTime();
+    }
+
+    return nowMs + 60 * 1000;
+  }
+
+  function parsePromptTokens(texto) {
+    return tokenizar(String(texto || ""));
+  }
+
+  function loadMemoryIndex() {
+    var entries = loadMemory();
+    return {
+      entries: entries,
+      index: indice_vetorial(entries.map(function (entry) {
+        return entry.texto;
+      }))
+    };
+  }
+
+  function memorySearch(query, limit) {
+    var store = loadMemoryIndex();
+    var hits;
+    if (!store.entries.length) {
+      return [];
+    }
+    hits = vizinho_proximo(store.index, query, limit || 3);
+    return hits.map(function (hit) {
+      var idx = store.index.entradas.indexOf(hit.item);
+      return {
+        score: hit.score,
+        item: store.entries[idx]
+      };
+    }).filter(function (hit) {
+      return !!hit.item;
+    });
+  }
+
+  function appendMemory(categoria, texto, meta) {
+    var memory = loadMemory();
+    var entry = {
+      id: "mem-" + agora_ms() + "-" + (memory.length + 1),
+      categoria: categoria || "nota",
+      texto: String(texto || ""),
+      criado_em_ms: agora_ms(),
+      meta: meta || {}
+    };
+    memory.push(entry);
+    saveMemory(memory);
+    return entry;
+  }
+
+  function ensureSession(history, sessionId, route) {
+    var i;
+    for (i = 0; i < history.length; i += 1) {
+      if (history[i].id === sessionId) {
+        return history[i];
+      }
+    }
+    history.push({
+      id: sessionId,
+      criado_em_ms: agora_ms(),
+      provider: route.provider,
+      model: route.model,
+      messages: []
+    });
+    return history[history.length - 1];
+  }
+
+  function appendHistoryMessage(sessionId, role, content, route, meta) {
+    var history = loadHistory();
+    var session = ensureSession(history, sessionId, route);
+    session.provider = route.provider;
+    session.model = route.model;
+    session.messages.push({
+      role: role,
+      content: String(content || ""),
+      em_ms: agora_ms(),
+      meta: meta || {}
+    });
+    saveHistory(history);
+  }
+
+  function localProviderResponse(prompt, route, memoria, ferramentas, sessionId) {
+    var lowered = String(prompt || "").toLowerCase();
+    var lines = [];
+    var routeInfo = "provider=" + route.provider + " model=" + route.model + " reason=" + route.reason;
+
+    if (lowered === "/model") {
+      lines.push(routeInfo);
+      lines.push("routes=" + route.routes.map(function (item) { return item.nome + ":" + item.model; }).join(", "));
+      return lines.join("\n");
+    }
+
+    if (lowered === "/tools") {
+      lines.push("tools=" + Object.keys(ferramentas).sort().join(", "));
+      return lines.join("\n");
+    }
+
+    if (lowered.indexOf("/memory") === 0) {
+      if (!memoria.length) {
+        return "memory: vazio";
+      }
+      return memoria.map(function (item) {
+        return item.item.id + " " + item.item.categoria + " score=" + item.score.toFixed(3) + " " + item.item.texto;
+      }).join("\n");
+    }
+
+    if (lowered.indexOf("!tool ") === 0) {
+      var parts = String(prompt).slice(6).trim().split(/\s+/);
+      var toolName = parts.shift();
+      var payload = parts.join(" ");
+      if (!ferramentas[toolName]) {
+        return "tool " + toolName + " nao encontrada";
+      }
+      return ferramentas[toolName](payload, sessionId);
+    }
+
+    if (lowered.indexOf("status") >= 0) {
+      return [
+        "NullClaw PTJS online.",
+        routeInfo,
+        "workspace=" + USER_WS.raiz,
+        "memory_hits=" + memoria.length
+      ].join("\n");
+    }
+
+    if (lowered.indexOf("seguranca") >= 0 || lowered.indexOf("scan") >= 0 || lowered.indexOf("clam") >= 0) {
+      return [
+        "Plano operacional de seguranca gerado.",
+        routeInfo,
+        "Use: doctor, memory search, !tool scan README.md"
+      ].join("\n");
+    }
+
+    if (lowered.indexOf("codigo") >= 0 || lowered.indexOf("patch") >= 0 || lowered.indexOf("bug") >= 0) {
+      return [
+        "Rota de codigo ativada.",
+        routeInfo,
+        "Ferramentas uteis: !tool ls ., !tool read AGENTS.md, !tool write notas.txt ..."
+      ].join("\n");
+    }
+
+    lines.push("NullClaw PTJS respondeu.");
+    lines.push(routeInfo);
+    if (memoria.length) {
+      lines.push("memoria=" + memoria[0].item.texto);
+    } else {
+      lines.push("memoria=vazia");
+    }
+    lines.push("prompt=" + String(prompt));
+    return lines.join("\n");
+  }
+
+  function resolveRoute(prompt, pinnedModel) {
+    var config = loadConfig();
+    var provider = config.provider;
+    var model = pinnedModel || config.model;
+    var reason = pinnedModel ? "pinned" : "default";
+    var tokens = parsePromptTokens(prompt);
+
+    if (!pinnedModel) {
+      config.model_routes.forEach(function (route) {
+        if (reason !== "default") {
+          return;
+        }
+        if (!route.tokens || !route.tokens.length) {
+          return;
+        }
+        route.tokens.forEach(function (token) {
+          if (tokens.indexOf(token) >= 0 && reason === "default") {
+            model = route.model;
+            reason = "route:" + route.nome;
+          }
+        });
+      });
+    }
+
+    return {
+      provider: provider,
+      model: model,
+      reason: reason,
+      routes: config.model_routes
+    };
+  }
+
+  function capabilitiesManifest() {
+    var channels = loadChannels();
+    var skills = loadSkills();
+    return {
+      app: PRODUCT_NAME,
+      sample_version: SAMPLE_VERSION,
+      runtime: {
+        ptjs: true,
+        host_std: gatocore.host_std,
+        host_os: gatocore.host_os,
+        workspace_root: USER_WS.raiz
+      },
+      providers: providersCatalog().map(function (item) {
+        return {
+          nome: item.nome,
+          modelos: item.modelos
+        };
+      }),
+      channels: channels,
+      skills: skills,
+      features: [
+        "onboard",
+        "agent",
+        "interactive-agent",
+        "gateway-loop",
+        "service-state",
+        "channels",
+        "cron",
+        "history",
+        "memory-hybrid-local",
+        "workspace-bootstrap",
+        "auth-state",
+        "models-benchmark",
+        "migrate-dry-run",
+        "hardware-scan"
+      ],
+      limits: [
+        "sem servidor HTTP real",
+        "sem websockets reais",
+        "sem provedores LLM remotos completos",
+        "sem sandbox de kernel forte",
+        "sem daemonizacao nativa persistente"
+      ]
+    };
+  }
+
+  function buildTools(sessionId) {
+    return {
+      status: function () {
+        return JSON.stringify(statusSnapshot(), null, 2);
+      },
+      ls: function (payload) {
+        var target = payload || ".";
+        var res = USER_WS.listar(target);
+        return res.ok ? res.valor.join("\n") : JSON.stringify(res.erro);
+      },
+      read: function (payload) {
+        var target = payload || "AGENTS.md";
+        var res = USER_WS.ler_texto(target);
+        return res.ok ? res.valor : JSON.stringify(res.erro);
+      },
+      write: function (payload) {
+        var parts = String(payload || "").split(/\s+/);
+        var target = parts.shift() || "nota.txt";
+        var content = parts.join(" ") || "conteudo vazio";
+        USER_WS.escrever_texto(target, content + "\n");
+        appendMemory("workspace-write", "arquivo " + target + " atualizado", { session_id: sessionId });
+        return "ok: " + target;
+      },
+      memory_store: function (payload) {
+        var entry = appendMemory("manual", payload || "nota vazia", { session_id: sessionId });
+        return entry.id;
+      },
+      memory_search: function (payload) {
+        var hits = memorySearch(payload || "", 3);
+        if (!hits.length) {
+          return "sem hits";
+        }
+        return hits.map(function (item) {
+          return item.item.id + " " + item.item.texto;
+        }).join("\n");
+      },
+      scan: function (payload) {
+        var target = payload || "AGENTS.md";
+        var engine = motor_varredura();
+        engine.adicionar_assinatura(assinatura_binaria("elf", "ELF"));
+        engine.adicionar_heuristica(heuristica("script", ".md"));
+        var result = USER_WS.existe(target) ? engine.varrer_arquivo(USER_WS.caminho(target)) : varrer_arquivo(ROOT.caminho(target));
+        return JSON.stringify(result, null, 2);
+      },
+      http_get: function (payload) {
+        var client = http();
+        var res = client.texto(payload || "https://example.com");
+        return res.ok ? res.valor.slice(0, 240) : JSON.stringify(res.erro);
+      },
+      delegate: function (payload) {
+        var sub = subagente({
+          executar: function (input) {
+            var words = tokenizar(input || "");
+            return "subagente: " + words.slice(0, 8).join(" ");
+          }
+        });
+        return sub.executar(payload || "");
+      }
+    };
+  }
+
+  function executeAgentTurn(prompt, sessionId, pinnedModel) {
+    var route = resolveRoute(prompt, pinnedModel);
+    var memoria = memorySearch(prompt, 3);
+    var ferramentas = buildTools(sessionId);
+    var summarizer = subagente({
+      executar: function (input) {
+        var words = tokenizar(input || "");
+        return words.slice(0, 12).join(" ");
+      }
+    });
+    var flow = workflow({
+      nome: "agent-turn",
+      etapas: [
+        function (input) {
+          input.route = route;
+          input.memoria = memoria;
+          return input;
+        },
+        function (input) {
+          input.resumo = summarizer.executar(input.prompt);
+          return input;
+        },
+        function (input) {
+          input.answer = localProviderResponse(input.prompt, route, memoria, ferramentas, sessionId);
+          return input;
+        }
+      ]
+    });
+    var runtimeAgent = agente({
+      executar: function (input) {
+        return flow.executar({
+          prompt: input,
+          session_id: sessionId
+        });
+      }
+    });
+    var result = runtimeAgent.executar(prompt);
+
+    appendHistoryMessage(sessionId, "user", prompt, route, { summary: result.resumo });
+    appendHistoryMessage(sessionId, "assistant", result.answer, route, { reason: route.reason });
+    appendMemory("conversation", prompt, { role: "user", session_id: sessionId, model: route.model });
+    appendMemory("conversation", result.answer, { role: "assistant", session_id: sessionId, model: route.model });
+
+    return {
+      session_id: sessionId,
+      route: route,
+      answer: result.answer,
+      memory_hits: memoria
+    };
+  }
+
+  function statusSnapshot() {
+    var config = loadConfig();
+    var channels = loadChannels();
+    var memory = loadMemory();
+    var history = loadHistory();
+    var serviceState = loadService();
+    var gatewayState = loadGatewayState();
+    var skills = loadSkills();
+    return {
+      app: PRODUCT_NAME,
+      sample_version: SAMPLE_VERSION,
+      provider: config.provider,
+      model: config.model,
+      gateway: gatewayState,
+      service: serviceState,
+      channels: channels.map(function (item) {
+        return {
+          nome: item.nome,
+          enabled: item.enabled,
+          running: item.running,
+          health: item.health
+        };
+      }),
+      memory_count: memory.length,
+      history_sessions: history.length,
+      skills: skills.length,
+      workspace: USER_WS.raiz
+    };
+  }
+
+  function showHelp() {
+    bloco("NullClaw PTJS");
+    linha("Replica funcional de alto nivel em PTJS.");
+    blank();
+    linha("Comandos principais:");
+    linha("  help");
+    linha("  version");
+    linha("  onboard [--interactive] [--provider N] [--api-key KEY] [--model N] [--memory BACKEND]");
+    linha("  agent -m \"mensagem\"");
+    linha("  agent              # modo interativo");
+    linha("  gateway [--host H] [--port N]");
+    linha("  status");
+    linha("  doctor");
+    linha("  service install|start|stop|restart|status|uninstall");
+    linha("  channel list|start|status|add|remove");
+    linha("  skills list|install|remove|info");
+    linha("  history list|show ID");
+    linha("  memory stats|count|search|get|list|forget|reindex|drain-outbox");
+    linha("  workspace edit AGENTS.md");
+    linha("  workspace reset-md [--dry-run]");
+    linha("  capabilities [--json]");
+    linha("  models list|info|benchmark|refresh");
+    linha("  cron list|add|add-agent|once|once-agent|run|pause|resume|remove|runs|update");
+    linha("  auth login|status|logout");
+    linha("  migrate openclaw [--dry-run] [--source PATH]");
+    linha("  hardware scan|flash|monitor");
+    blank();
+    linha("Flags de automacao:");
+    linha("  --export-manifest");
+    linha("  --list-models");
+    linha("  --probe-provider-health");
+    linha("  --probe-channel-health");
+    linha("  --from-json PATH");
+  }
+
+  function cmdVersion() {
+    var config = loadConfig();
+    linha("nullclaw-ptjs " + SAMPLE_VERSION);
+    linha("provider=" + config.provider + " model=" + config.model + " memory=" + config.memory_backend);
+    linha("workspace=" + USER_WS.raiz);
+  }
+
+  function readLinePrompt(promptText, echoInput) {
+    var buffer = "";
+    var activeRaw = false;
+    escrever(promptText);
+    try {
+      ativar_terminal_cru();
+      activeRaw = true;
+      while (true) {
+        var key = ler_tecla(50);
+        if (key === null) {
+          continue;
+        }
+        if (key === "\u0003") {
+          escrever("^C\n");
+          return null;
+        }
+        if (key === "\r" || key === "\n") {
+          escrever("\n");
+          return buffer;
+        }
+        if (key === "\u007f" || key === "\b") {
+          if (buffer.length > 0) {
+            buffer = buffer.slice(0, -1);
+            if (echoInput !== false) {
+              escrever("\b \b");
+            }
+          }
+          continue;
+        }
+        if (key >= " " && key !== "\u001b") {
+          buffer += key;
+          if (echoInput !== false) {
+            escrever(key);
+          }
+        }
+      }
+    } finally {
+      if (activeRaw) {
+        desativar_terminal_cru();
+      }
+    }
+  }
+
+  function cmdOnboard(argv) {
+    var config = loadConfig();
+    var interactive = temFlag(argv, "--interactive");
+    var provider = valorFlag(argv, "--provider", config.provider);
+    var model = valorFlag(argv, "--model", config.model);
+    var memoryBackend = valorFlag(argv, "--memory", config.memory_backend);
+    var apiKey = valorFlag(argv, "--api-key", null);
+    var auth = loadAuth();
+
+    if (interactive) {
+      provider = readLinePrompt("provider [" + provider + "]: ", true) || provider;
+      model = readLinePrompt("model [" + model + "]: ", true) || model;
+      memoryBackend = readLinePrompt("memory [" + memoryBackend + "]: ", true) || memoryBackend;
+      apiKey = readLinePrompt("api key [opcional]: ", true) || apiKey;
+    }
+
+    config.provider = provider;
+    config.model = model;
+    config.memory_backend = memoryBackend;
+    saveConfig(config);
+
+    if (apiKey) {
+      auth = auth.filter(function (item) {
+        return item.provider !== provider;
+      });
+      auth.push({
+        provider: provider,
+        token: apiKey,
+        imported: false,
+        login_at_ms: agora_ms()
+      });
+      saveAuth(auth);
+    }
+
+    linha("onboard completo");
+    linha("provider=" + provider);
+    linha("model=" + model);
+    linha("memory=" + memoryBackend);
+    linha("auth=" + (apiKey ? "stored" : "unchanged"));
+  }
+
+  function cmdAgent(argv) {
+    var prompt = valorFlag(argv, "-m", null) || valorFlag(argv, "--message", null);
+    var pinnedModel = valorFlag(argv, "--model", null);
+    var sessionId = "sessao-" + agora_ms();
+
+    if (prompt) {
+      var single = executeAgentTurn(prompt, sessionId, pinnedModel);
+      linha(single.answer);
+      return;
+    }
+
+    bloco("Interactive Agent");
+    linha("Digite /exit para sair, /model para ver o roteamento, /tools para listar ferramentas.");
+
+    while (true) {
+      var entrada = readLinePrompt("> ", true);
+      if (entrada === null || entrada === "/exit") {
+        linha("encerrando sessao");
+        break;
+      }
+      if (!entrada.trim()) {
+        continue;
+      }
+      linha(executeAgentTurn(entrada, sessionId, pinnedModel).answer);
+      blank();
+    }
+  }
+
+  function cmdGateway(argv) {
+    var config = loadConfig();
+    var gatewayState = loadGatewayState();
+    var host = valorFlag(argv, "--host", config.gateway.host);
+    var port = numeroFlag(argv, "--port", config.gateway.port);
+    var routes = gateway({ nome: PRODUCT_NAME + "-gateway" });
+    var cronState = loadCron();
+    var lastBeat = agora_ms();
+    var activeRaw = false;
+
+    routes.registrar_rota("/health", function () {
+      return { ok: true, em_ms: agora_ms(), heartbeat_count: gatewayState.heartbeat_count };
+    });
+    routes.registrar_rota("/status", function () {
+      return statusSnapshot();
+    });
+    routes.registrar_rota("/manifest", function () {
+      return capabilitiesManifest();
+    });
+
+    gatewayState.running = true;
+    gatewayState.host = host;
+    gatewayState.port = port;
+    gatewayState.started_at_ms = agora_ms();
+    saveGatewayState(gatewayState);
+
+    bloco("Gateway Runtime");
+    linha("bind=" + host + ":" + port);
+    linha("rotas locais: /health, /status, /manifest");
+    linha("teclas: q sair | h health | s status | c channels");
+
+    try {
+      ativar_terminal_cru();
+      activeRaw = true;
+      while (true) {
+        var now = agora_ms();
+        var key = ler_tecla(150);
+        if (now - lastBeat >= 1000) {
+          gatewayState.heartbeat_count += 1;
+          gatewayState.last_healthcheck_ms = now;
+          saveGatewayState(gatewayState);
+          processCronDue(cronState);
+          cronState = loadCron();
+          lastBeat = now;
+        }
+        if (key === null) {
+          continue;
+        }
+        if (key === "q" || key === "x" || key === "\u0003") {
+          linha("\nshutdown");
+          break;
+        }
+        if (key === "h") {
+          linha("\n" + JSON.stringify(routes.resolver("/health"), null, 2));
+        } else if (key === "s") {
+          linha("\n" + JSON.stringify(routes.resolver("/status"), null, 2));
+        } else if (key === "c") {
+          linha("\n" + JSON.stringify(loadChannels(), null, 2));
+        }
+      }
+    } finally {
+      if (activeRaw) {
+        desativar_terminal_cru();
+      }
+      gatewayState.running = false;
+      saveGatewayState(gatewayState);
+    }
+  }
+
+  function cmdStatus() {
+    var snap = statusSnapshot();
+    bloco("Status");
+    linha("provider      " + snap.provider);
+    linha("model         " + snap.model);
+    linha("service       " + (snap.service.running ? "running" : "stopped"));
+    linha("gateway       " + (snap.gateway.running ? "running" : "stopped"));
+    linha("memory_count  " + snap.memory_count);
+    linha("sessions      " + snap.history_sessions);
+    linha("skills        " + snap.skills);
+    linha("workspace     " + snap.workspace);
+    blank();
+    linha("channels:");
+    snap.channels.forEach(function (item) {
+      linha("  - " + item.nome + " enabled=" + item.enabled + " running=" + item.running + " health=" + item.health);
+    });
+  }
+
+  function cmdDoctor() {
+    var checks = [];
+    var config = loadConfig();
+    var auth = loadAuth();
+    checks.push({ nome: "host_std", ok: !!gatocore.host_std, detalhe: "stdlib host" });
+    checks.push({ nome: "host_os", ok: !!gatocore.host_os, detalhe: "os host" });
+    checks.push({ nome: "config", ok: !!config.provider && !!config.model, detalhe: config.provider + "/" + config.model });
+    checks.push({ nome: "workspace", ok: USER_WS.existe("AGENTS.md"), detalhe: USER_WS.caminho("AGENTS.md") });
+    checks.push({ nome: "heartbeat", ok: USER_WS.existe("HEARTBEAT.md"), detalhe: USER_WS.caminho("HEARTBEAT.md") });
+    checks.push({ nome: "channels", ok: loadChannels().length > 0, detalhe: String(loadChannels().length) + " configured" });
+    checks.push({ nome: "skills", ok: loadSkills().length > 0, detalhe: String(loadSkills().length) + " installed" });
+    checks.push({ nome: "memory", ok: true, detalhe: String(loadMemory().length) + " entries" });
+    checks.push({ nome: "auth", ok: auth.length > 0, detalhe: auth.length ? auth.map(function (item) { return item.provider; }).join(", ") : "no credentials stored" });
+
+    bloco("Doctor");
+    checks.forEach(function (item) {
+      linha(padDir(item.ok ? "OK" : "WARN", 6) + padDir(item.nome, 12) + item.detalhe);
+    });
+  }
+
+  function cmdService(argv) {
+    var sub = argv[0] || "status";
+    var state = loadService();
+    if (sub === "install") {
+      state.installed = true;
+      saveService(state);
+      linha("service installed");
+      return;
+    }
+    if (sub === "start") {
+      state.installed = true;
+      state.running = true;
+      state.last_started_ms = agora_ms();
+      saveService(state);
+      linha("service started");
+      return;
+    }
+    if (sub === "stop") {
+      state.running = false;
+      state.last_stopped_ms = agora_ms();
+      saveService(state);
+      linha("service stopped");
+      return;
+    }
+    if (sub === "restart") {
+      state.installed = true;
+      state.running = true;
+      state.last_started_ms = agora_ms();
+      saveService(state);
+      linha("service restarted");
+      return;
+    }
+    if (sub === "uninstall") {
+      saveService(defaultService());
+      linha("service uninstalled");
+      return;
+    }
+    linha(JSON.stringify(state, null, 2));
+  }
+
+  function cmdChannel(argv) {
+    var sub = argv[0] || "list";
+    var channels = loadChannels();
+    var name = argv[1] || "cli";
+    var found;
+
+    function saveAndPrint(msg) {
+      saveChannels(channels);
+      linha(msg);
+    }
+
+    if (sub === "list" || sub === "status") {
+      channels.forEach(function (item) {
+        linha(item.nome + " enabled=" + item.enabled + " running=" + item.running + " health=" + item.health);
+      });
+      return;
+    }
+
+    found = channels.filter(function (item) { return item.nome === name; })[0];
+    if (sub === "add") {
+      if (found) {
+        linha("channel already exists: " + name);
+        return;
+      }
+      channels.push({
+        nome: name,
+        tipo: "chat",
+        enabled: true,
+        running: false,
+        allowlist: [],
+        health: "idle"
+      });
+      saveAndPrint("channel added: " + name);
+      return;
+    }
+    if (sub === "remove") {
+      channels = channels.filter(function (item) { return item.nome !== name; });
+      saveChannels(channels);
+      linha("channel removed: " + name);
+      return;
+    }
+    if (!found) {
+      linha("channel not found: " + name);
+      return;
+    }
+    if (sub === "start") {
+      found.running = true;
+      found.enabled = true;
+      found.health = "ok";
+      saveAndPrint("channel started: " + name);
+      return;
+    }
+    linha("unsupported channel action: " + sub);
+  }
+
+  function inferSkillName(texto, fallback) {
+    var lines = String(texto || "").split(/\r?\n/);
+    var i;
+    for (i = 0; i < lines.length; i += 1) {
+      if (lines[i].indexOf("# ") === 0) {
+        return normalizarNome(lines[i].slice(2));
+      }
+    }
+    return normalizarNome(fallback || "skill");
+  }
+
+  function cmdSkills(argv) {
+    var sub = argv[0] || "list";
+    var skills = loadSkills();
+    var target = argv[1] || "";
+    var content;
+    var name;
+    var fetched;
+
+    if (sub === "list") {
+      skills.forEach(function (item) {
+        linha(item.nome + " source=" + item.fonte + " commands=" + item.comandos.join(", "));
+      });
+      return;
+    }
+    if (sub === "info") {
+      var info = skills.filter(function (item) { return item.nome === target; })[0];
+      linha(info ? JSON.stringify(info, null, 2) : "skill not found");
+      return;
+    }
+    if (sub === "remove") {
+      skills = skills.filter(function (item) { return item.nome !== target || item.fonte === "builtin"; });
+      saveSkills(skills);
+      linha("skill removed: " + target);
+      return;
+    }
+    if (sub === "install") {
+      if (!target) {
+        linha("skill source required");
+        return;
+      }
+      if (/^https?:\/\//i.test(target)) {
+        fetched = http().texto(target);
+        if (!fetched.ok) {
+          linha(JSON.stringify(fetched.erro));
+          return;
+        }
+        content = fetched.valor;
+      } else {
+        if (ROOT.existe(target)) {
+          content = ROOT.ler_texto(target).valor;
+        } else if (USER_WS.existe(target)) {
+          content = USER_WS.ler_texto(target).valor;
+        } else {
+          linha("skill source not found: " + target);
+          return;
+        }
+      }
+      name = inferSkillName(content, target);
+      skills = skills.filter(function (item) { return item.nome !== name; });
+      skills.push({
+        nome: name,
+        fonte: /^https?:\/\//i.test(target) ? "url" : "local",
+        descricao: "Skill instalada no sample NullClaw PTJS.",
+        comandos: ["skills info " + name]
+      });
+      saveSkills(skills);
+      USER_WS.escrever_texto("skills_" + name + ".md", content);
+      linha("skill installed: " + name);
+      return;
+    }
+    linha("unsupported skills action: " + sub);
+  }
+
+  function cmdHistory(argv) {
+    var sub = argv[0] || "list";
+    var history = loadHistory();
+    var id = argv[1];
+    var limit = numeroFlag(argv, "--limit", 20);
+    var offset = numeroFlag(argv, "--offset", 0);
+    var asJson = temFlag(argv, "--json");
+    var items;
+
+    if (sub === "list") {
+      items = history.slice(offset, offset + limit).map(function (session) {
+        return {
+          id: session.id,
+          provider: session.provider,
+          model: session.model,
+          messages: session.messages.length,
+          criado_em: agoraIso(session.criado_em_ms)
+        };
+      });
+      if (asJson) {
+        linha(JSON.stringify(items, null, 2));
+      } else {
+        items.forEach(function (item) {
+          linha(item.id + " provider=" + item.provider + " model=" + item.model + " messages=" + item.messages);
+        });
+      }
+      return;
+    }
+
+    if (sub === "show") {
+      var session = history.filter(function (item) { return item.id === id; })[0];
+      if (!session) {
+        linha("session not found");
+        return;
+      }
+      if (asJson) {
+        linha(JSON.stringify(session, null, 2));
+      } else {
+        session.messages.forEach(function (msg) {
+          linha("[" + msg.role + "] " + msg.content);
+        });
+      }
+      return;
+    }
+
+    linha("unsupported history action: " + sub);
+  }
+
+  function cmdMemory(argv) {
+    var sub = argv[0] || "stats";
+    var memory = loadMemory();
+    var id = argv[1];
+    var limit = numeroFlag(argv, "--limit", 10);
+    var category = valorFlag(argv, "--category", null);
+    var query;
+    var hits;
+
+    if (sub === "stats") {
+      linha(JSON.stringify({
+        backend: loadConfig().memory_backend,
+        entries: memory.length,
+        categories: memory.reduce(function (acc, item) {
+          acc[item.categoria] = (acc[item.categoria] || 0) + 1;
+          return acc;
+        }, {})
+      }, null, 2));
+      return;
+    }
+    if (sub === "count") {
+      linha(String(memory.length));
+      return;
+    }
+    if (sub === "search") {
+      query = argv[1] || "";
+      hits = memorySearch(query, limit);
+      linha(JSON.stringify(hits, null, 2));
+      return;
+    }
+    if (sub === "get") {
+      linha(JSON.stringify(memory.filter(function (item) { return item.id === id; })[0] || null, null, 2));
+      return;
+    }
+    if (sub === "list") {
+      var list = memory.filter(function (item) {
+        return !category || item.categoria === category;
+      }).slice(0, limit);
+      linha(JSON.stringify(list, null, 2));
+      return;
+    }
+    if (sub === "forget") {
+      memory = memory.filter(function (item) { return item.id !== id; });
+      saveMemory(memory);
+      linha("forgotten: " + id);
+      return;
+    }
+    if (sub === "reindex") {
+      var idx = loadMemoryIndex();
+      linha("reindex complete: " + idx.entries.length + " entries");
+      return;
+    }
+    if (sub === "drain-outbox") {
+      linha("outbox drained: 0 pending");
+      return;
+    }
+    linha("unsupported memory action: " + sub);
+  }
+
+  function cmdWorkspace(argv) {
+    var sub = argv[0] || "edit";
+    var target = argv[1] || "AGENTS.md";
+    var dryRun = temFlag(argv, "--dry-run");
+    if (sub === "edit") {
+      if (!USER_WS.existe(target)) {
+        USER_WS.escrever_texto(target, "# " + target + "\n\nbootstrap file\n");
+      }
+      linha(USER_WS.caminho(target));
+      linha(USER_WS.ler_texto(target).valor);
+      return;
+    }
+    if (sub === "reset-md") {
+      if (dryRun) {
+        linha("would reset: AGENTS.md, HEARTBEAT.md");
+        return;
+      }
+      ensureBootstrapMarkdown();
+      linha("workspace markdown reset");
+      return;
+    }
+    linha("unsupported workspace action: " + sub);
+  }
+
+  function cmdCapabilities(argv) {
+    var manifest = capabilitiesManifest();
+    if (temFlag(argv, "--json")) {
+      linha(JSON.stringify(manifest, null, 2));
+      return;
+    }
+    bloco("Capabilities");
+    linha("providers: " + manifest.providers.map(function (item) { return item.nome; }).join(", "));
+    linha("channels: " + manifest.channels.map(function (item) { return item.nome; }).join(", "));
+    linha("features: " + manifest.features.join(", "));
+  }
+
+  function allModels() {
+    var out = [];
+    providersCatalog().forEach(function (provider) {
+      provider.modelos.forEach(function (model) {
+        out.push({
+          provider: provider.nome,
+          model: model,
+          latency_ms: provider.latencia_ms,
+          health: provider.health
+        });
+      });
+    });
+    return out;
+  }
+
+  function cmdModels(argv) {
+    var sub = argv[0] || "list";
+    var target = argv[1];
+    var models = allModels();
+
+    if (sub === "list") {
+      models.forEach(function (item) {
+        linha(item.provider + " " + item.model + " health=" + item.health);
+      });
+      return;
+    }
+    if (sub === "info") {
+      linha(JSON.stringify(models.filter(function (item) { return item.model === target || item.provider === target; }), null, 2));
+      return;
+    }
+    if (sub === "benchmark") {
+      var results = models.slice(0, 4).map(function (item) {
+        var start = agora_ms();
+        esperar(Math.max(5, Math.min(item.latencia_ms, 30)));
+        return {
+          provider: item.provider,
+          model: item.model,
+          latency_ms: agora_ms() - start
+        };
+      });
+      linha(JSON.stringify(results, null, 2));
+      return;
+    }
+    if (sub === "refresh") {
+      var exported = EXPORTS.escrever_json("models_catalog.json", {
+        refreshed_at_ms: agora_ms(),
+        models: models
+      });
+      linha(exported.ok ? "models catalog refreshed" : JSON.stringify(exported.erro));
+      return;
+    }
+    linha("unsupported models action: " + sub);
+  }
+
+  function cronTaskRecord(kind, expression, payload, meta) {
+    return {
+      id: "cron-" + agora_ms() + "-" + Math.floor(Math.random() * 1000),
+      kind: kind,
+      expression: expression,
+      payload: payload,
+      meta: meta || {},
+      enabled: true,
+      next_ms: nextCronMs(expression, agora_ms()),
+      created_at_ms: agora_ms()
+    };
+  }
+
+  function runCronTask(task) {
+    var output;
+    if (task.kind === "command") {
+      output = "command: " + task.payload;
+    } else if (task.kind === "agent") {
+      output = executeAgentTurn(task.payload, "cron-session-" + agora_ms(), task.meta && task.meta.model).answer;
+    } else {
+      output = "unsupported task";
+    }
+    return {
+      task_id: task.id,
+      ran_at_ms: agora_ms(),
+      output: output
+    };
+  }
+
+  function processCronDue(existingState) {
+    var cronState = existingState || loadCron();
+    var now = agora_ms();
+    var changed = false;
+    cronState.tasks.forEach(function (task) {
+      if (!task.enabled || task.next_ms > now) {
+        return;
+      }
+      cronState.runs.push(runCronTask(task));
+      task.next_ms = nextCronMs(task.expression, now);
+      changed = true;
+    });
+    if (changed) {
+      saveCron(cronState);
+    }
+  }
+
+  function cmdCron(argv) {
+    var sub = argv[0] || "list";
+    var cronState = loadCron();
+    var id = argv[1];
+
+    if (sub === "list") {
+      linha(JSON.stringify(cronState.tasks, null, 2));
+      return;
+    }
+    if (sub === "runs") {
+      linha(JSON.stringify(cronState.runs.slice(-20), null, 2));
+      return;
+    }
+    if (sub === "add") {
+      cronState.tasks.push(cronTaskRecord("command", argv[1], argv[2], {}));
+      saveCron(cronState);
+      linha("cron added");
+      return;
+    }
+    if (sub === "add-agent") {
+      cronState.tasks.push(cronTaskRecord("agent", argv[1], argv[2], {
+        model: valorFlag(argv, "--model", null)
+      }));
+      saveCron(cronState);
+      linha("agent cron added");
+      return;
+    }
+    if (sub === "once") {
+      cronState.tasks.push(cronTaskRecord("command", argv[1], argv[2], { once: true }));
+      saveCron(cronState);
+      linha("one-shot command added");
+      return;
+    }
+    if (sub === "once-agent") {
+      cronState.tasks.push(cronTaskRecord("agent", argv[1], argv[2], {
+        once: true,
+        model: valorFlag(argv, "--model", null)
+      }));
+      saveCron(cronState);
+      linha("one-shot agent added");
+      return;
+    }
+    if (sub === "run") {
+      var task = cronState.tasks.filter(function (item) { return item.id === id; })[0];
+      linha(task ? JSON.stringify(runCronTask(task), null, 2) : "cron task not found");
+      return;
+    }
+    if (sub === "pause" || sub === "resume") {
+      cronState.tasks.forEach(function (item) {
+        if (item.id === id) {
+          item.enabled = sub === "resume";
+        }
+      });
+      saveCron(cronState);
+      linha("cron " + sub + "d");
+      return;
+    }
+    if (sub === "remove") {
+      cronState.tasks = cronState.tasks.filter(function (item) { return item.id !== id; });
+      saveCron(cronState);
+      linha("cron removed");
+      return;
+    }
+    if (sub === "update") {
+      cronState.tasks.forEach(function (item) {
+        if (item.id === id) {
+          var nextExpr = valorFlag(argv, "--expression", item.expression);
+          var nextCommand = valorFlag(argv, "--command", item.payload);
+          var nextPrompt = valorFlag(argv, "--prompt", item.payload);
+          item.expression = nextExpr;
+          item.payload = item.kind === "agent" ? nextPrompt : nextCommand;
+          item.next_ms = nextCronMs(item.expression, agora_ms());
+          if (temFlag(argv, "--enable")) {
+            item.enabled = true;
+          }
+          if (temFlag(argv, "--disable")) {
+            item.enabled = false;
+          }
+        }
+      });
+      saveCron(cronState);
+      linha("cron updated");
+      return;
+    }
+    linha("unsupported cron action: " + sub);
+  }
+
+  function cmdAuth(argv) {
+    var sub = argv[0] || "status";
+    var provider = argv[1] || "openai-codex";
+    var auth = loadAuth();
+    var entry;
+
+    if (sub === "login") {
+      entry = {
+        provider: provider,
+        token: valorFlag(argv, "--token", "ptjs-token-" + provider + "-" + agora_ms()),
+        imported: false,
+        login_at_ms: agora_ms()
+      };
+      if (temFlag(argv, "--import-codex") && provider === "openai-codex") {
+        var home = segredo("HOME");
+        if (home.ok) {
+          var homeWs = workspace(home.valor);
+          if (homeWs.existe(".codex/auth.json")) {
+            entry.token = "imported-from-codex";
+            entry.imported = true;
+          }
+        }
+      }
+      auth = auth.filter(function (item) { return item.provider !== provider; });
+      auth.push(entry);
+      saveAuth(auth);
+      linha("auth stored for " + provider);
+      return;
+    }
+    if (sub === "status") {
+      entry = auth.filter(function (item) { return item.provider === provider; })[0] || null;
+      linha(JSON.stringify(entry, null, 2));
+      return;
+    }
+    if (sub === "logout") {
+      auth = auth.filter(function (item) { return item.provider !== provider; });
+      saveAuth(auth);
+      linha("auth removed for " + provider);
+      return;
+    }
+    linha("unsupported auth action: " + sub);
+  }
+
+  function cmdMigrate(argv) {
+    var source = valorFlag(argv, "--source", USER_WS.raiz);
+    var dryRun = temFlag(argv, "--dry-run");
+    var sourceWs = workspace(source);
+    var files = sourceWs.listar(".").ok ? sourceWs.listar(".").valor : [];
+    var report = {
+      source: source,
+      dry_run: dryRun,
+      files: files,
+      planned_actions: [
+        "import bootstrap markdown",
+        "scan memory markdown",
+        "preserve config names"
+      ]
+    };
+    linha(JSON.stringify(report, null, 2));
+  }
+
+  function cmdHardware(argv) {
+    var sub = argv[0] || "scan";
+    if (sub === "scan") {
+      linha(JSON.stringify([
+        { device: "ttyUSB0", kind: "serial", status: "simulated" },
+        { device: "gpio-sample", kind: "gpio", status: "simulated" }
+      ], null, 2));
+      return;
+    }
+    if (sub === "flash") {
+      linha("hardware flash placeholder ok");
+      return;
+    }
+    if (sub === "monitor") {
+      bloco("Hardware Monitor");
+      linha("Pressione q para sair.");
+      try {
+        ativar_terminal_cru();
+        while (true) {
+          var key = ler_tecla(500);
+          linha("tick " + agoraIso());
+          if (key === "q" || key === "\u0003") {
+            break;
+          }
+        }
+      } finally {
+        desativar_terminal_cru();
+      }
+      return;
+    }
+    linha("unsupported hardware action: " + sub);
+  }
+
+  function cmdUpdate(argv) {
+    if (temFlag(argv, "--check")) {
+      linha("update check: already on latest sample version " + SAMPLE_VERSION);
+      return;
+    }
+    if (temFlag(argv, "--yes")) {
+      EXPORTS.escrever_json("last_update_check.json", { updated_at_ms: agora_ms(), version: SAMPLE_VERSION });
+      linha("update applied: " + SAMPLE_VERSION);
+      return;
+    }
+    linha("use update --check or update --yes");
+  }
+
+  function exportManifest() {
+    linha(JSON.stringify(capabilitiesManifest(), null, 2));
+  }
+
+  function probeProviderHealth() {
+    linha(JSON.stringify(providersCatalog().map(function (item) {
+      return {
+        provider: item.nome,
+        health: item.health,
+        latency_ms: item.latencia_ms
+      };
+    }), null, 2));
+  }
+
+  function probeChannelHealth() {
+    linha(JSON.stringify(loadChannels().map(function (item) {
+      return {
+        channel: item.nome,
+        health: item.health,
+        running: item.running
+      };
+    }), null, 2));
+  }
+
+  function dispatchJson(path) {
+    var payload;
+    if (ROOT.existe(path)) {
+      payload = ROOT.ler_json(path).valor;
+    } else if (USER_WS.existe(path)) {
+      payload = USER_WS.ler_json(path).valor;
+    } else {
+      linha("json path not found: " + path);
+      return;
+    }
+    if (!payload || !payload.command) {
+      linha("invalid json payload");
+      return;
+    }
+    dispatch([payload.command].concat(payload.args || []));
+  }
+
+  function dispatch(argv) {
+    var command = argv[0] || "help";
+    if (command === "help" || command === "--help") {
+      showHelp();
+      return;
+    }
+    if (command === "version" || command === "--version") {
+      cmdVersion();
+      return;
+    }
+    if (command === "onboard") {
+      cmdOnboard(argv.slice(1));
+      return;
+    }
+    if (command === "agent") {
+      cmdAgent(argv.slice(1));
+      return;
+    }
+    if (command === "gateway") {
+      cmdGateway(argv.slice(1));
+      return;
+    }
+    if (command === "status") {
+      cmdStatus();
+      return;
+    }
+    if (command === "doctor") {
+      cmdDoctor();
+      return;
+    }
+    if (command === "service") {
+      cmdService(argv.slice(1));
+      return;
+    }
+    if (command === "channel") {
+      cmdChannel(argv.slice(1));
+      return;
+    }
+    if (command === "skills") {
+      cmdSkills(argv.slice(1));
+      return;
+    }
+    if (command === "history") {
+      cmdHistory(argv.slice(1));
+      return;
+    }
+    if (command === "memory") {
+      cmdMemory(argv.slice(1));
+      return;
+    }
+    if (command === "workspace") {
+      cmdWorkspace(argv.slice(1));
+      return;
+    }
+    if (command === "capabilities") {
+      cmdCapabilities(argv.slice(1));
+      return;
+    }
+    if (command === "models") {
+      cmdModels(argv.slice(1));
+      return;
+    }
+    if (command === "cron") {
+      cmdCron(argv.slice(1));
+      return;
+    }
+    if (command === "auth") {
+      cmdAuth(argv.slice(1));
+      return;
+    }
+    if (command === "migrate") {
+      cmdMigrate(argv.slice(1));
+      return;
+    }
+    if (command === "hardware") {
+      cmdHardware(argv.slice(1));
+      return;
+    }
+    if (command === "update") {
+      cmdUpdate(argv.slice(1));
+      return;
+    }
+    linha("unknown command: " + command);
+    showHelp();
+  }
+
+  ensureState();
+
+  var argv = RAW_ARGV.length && /\.ptjs$/i.test(String(RAW_ARGV[0])) ? RAW_ARGV.slice(1) : RAW_ARGV.slice();
+  if (argv.length === 0) {
+    showHelp();
+  } else if (argv[0] === "--export-manifest") {
+    exportManifest();
+  } else if (argv[0] === "--list-models") {
+    cmdModels(["list"]);
+  } else if (argv[0] === "--probe-provider-health") {
+    probeProviderHealth();
+  } else if (argv[0] === "--probe-channel-health") {
+    probeChannelHealth();
+  } else if (argv[0] === "--from-json") {
+    dispatchJson(argv[1]);
+  } else {
+    dispatch(argv);
+  }
+})();

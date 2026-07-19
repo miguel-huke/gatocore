@@ -1,0 +1,9 @@
+incluir("../../samples/gatod_engine/src/bootstrap/load_all.ptjs")
+
+definir project como gatod.engine.createProject()
+definir packed como gatod.engine.packScene(project.scene_root)
+definir root como gatod.engine.loadPackedScene(packed)
+
+mostrar tamanho de packed > 1000
+mostrar gatod.engine.flattenNodes(root).length
+mostrar gatod.engine.findNode(root, root.filhos[1].id).nome

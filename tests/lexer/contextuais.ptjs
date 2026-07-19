@@ -1,0 +1,7 @@
+definir tamanho como 2
+definir tipo como "texto"
+definir definirx como 7
+
+mostrar tamanho
+mostrar tipo
+mostrar definirx

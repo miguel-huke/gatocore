@@ -1,0 +1,11 @@
+{
+  "platform": "linux_x86_64",
+  "cc": "cc",
+  "cflags": [
+    "-std=c99",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-no-pie"
+  ]
+}

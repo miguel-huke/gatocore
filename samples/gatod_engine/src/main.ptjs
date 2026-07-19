@@ -1,0 +1,47 @@
+incluir("./bootstrap/load_all.ptjs")
+
+function cmd_help() {
+  mostrar("Gatod Engine")
+  mostrar("Comandos:")
+  mostrar("  editor")
+  mostrar("  editor-smoke")
+  mostrar("  scene-pack")
+  mostrar("  render-hash")
+  mostrar("  diagnostico-video")
+}
+
+function cmd_scene_pack() {
+  definir project como gatod.engine.createProject()
+  mostrar tamanho de gatod.engine.packScene(project.scene_root)
+}
+
+function cmd_render_hash() {
+  definir project como gatod.engine.createProject()
+  mostrar gatod.util.fnv1aBytes(gatod.render.frame(project))
+}
+
+function cmd_diagnostico_video() {
+  definir info como gatod.editor.videoInfo()
+  mostrar "backend=" + info.backend
+  mostrar "suportado=" + info.suportado
+  mostrar "erro=" + info.erro
+}
+
+definir args como argumentos()
+definir command como args.length > 1 ? args[1] : (args.length > 0 ? args[0] : "editor")
+
+if (command === "help") {
+  cmd_help()
+} else if (command === "scene-pack") {
+  cmd_scene_pack()
+} else if (command === "render-hash") {
+  cmd_render_hash()
+} else if (command === "diagnostico-video") {
+  cmd_diagnostico_video()
+} else if (command === "editor-smoke") {
+  sair(gatod.editor.run(3))
+} else if (command === "editor") {
+  sair(gatod.editor.run())
+} else {
+  cmd_help()
+}

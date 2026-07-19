@@ -1,0 +1,122 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.wad) {
+    return;
+  }
+
+  doom.wad = {};
+
+  doom.wad.parseBytes = function (buffer, origin) {
+    var bytes = doom.util.toBytes(buffer);
+    doom.util.assert(bytes.length >= 12, "WAD curto demais");
+    var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var identification = doom.util.readAscii(bytes, 0, 4);
+    var lumpCount = doom.util.readU32LE(view, 4);
+    var directoryOffset = doom.util.readU32LE(view, 8);
+    var lumps = [];
+    var idx;
+
+    doom.util.assert(
+      identification === "IWAD" || identification === "PWAD",
+      "identificacao WAD invalida"
+    );
+    doom.util.assert(directoryOffset + lumpCount * 16 <= bytes.length, "diretorio WAD fora do arquivo");
+
+    for (idx = 0; idx < lumpCount; idx++) {
+      var entryOffset = directoryOffset + idx * 16;
+      var lumpOffset = doom.util.readU32LE(view, entryOffset);
+      var lumpSize = doom.util.readU32LE(view, entryOffset + 4);
+      var lumpName = doom.util.readAscii(bytes, entryOffset + 8, 8);
+      doom.util.assert(lumpOffset + lumpSize <= bytes.length, "lump fora do arquivo: " + lumpName);
+      lumps.push({
+        index: idx,
+        name: lumpName,
+        offset: lumpOffset,
+        size: lumpSize
+      });
+    }
+
+    return {
+      identification: identification,
+      lump_count: lumpCount,
+      directory_offset: directoryOffset,
+      origin: origin || "<memoria>",
+      bytes: bytes,
+      lumps: lumps
+    };
+  };
+
+  doom.wad.load = function (path) {
+    return doom.wad.parseBytes(ler_bytes(path), path);
+  };
+
+  doom.wad.find = function (wad, name) {
+    var target = String(name || "").toUpperCase();
+    var idx;
+    for (idx = 0; idx < wad.lumps.length; idx++) {
+      if (wad.lumps[idx].name.toUpperCase() === target) {
+        return wad.lumps[idx];
+      }
+    }
+    return null;
+  };
+
+  doom.wad.lumpBytes = function (wad, lump) {
+    var start = lump.offset;
+    var end = lump.offset + lump.size;
+    return wad.bytes.slice(start, end);
+  };
+
+  doom.wad.summaryLines = function (wad) {
+    var lines = [];
+    lines.push("origem=" + wad.origin);
+    lines.push("tipo=" + wad.identification);
+    lines.push("lumps=" + wad.lump_count);
+    lines.push("diretorio=" + wad.directory_offset);
+    lines.push("nomes=" + wad.lumps.map(function (item) { return item.name; }).join(","));
+    return lines;
+  };
+
+  doom.wad.fixtureBytes = function () {
+    var lumps = [
+      { name: "PLAYPAL", bytes: new Uint8Array([0, 1, 2, 3]) },
+      { name: "E1M1", bytes: new Uint8Array([10, 20, 30, 40, 50, 60]) }
+    ];
+    var headerSize = 12;
+    var dataSize = lumps.reduce(function (acc, lump) { return acc + lump.bytes.length; }, 0);
+    var directoryOffset = headerSize + dataSize;
+    var totalSize = directoryOffset + lumps.length * 16;
+    var buffer = new ArrayBuffer(totalSize);
+    var bytes = new Uint8Array(buffer);
+    var view = new DataView(buffer);
+    var offset = headerSize;
+    var idx;
+
+    bytes[0] = 0x50;
+    bytes[1] = 0x57;
+    bytes[2] = 0x41;
+    bytes[3] = 0x44;
+    doom.util.writeU32LE(view, 4, lumps.length);
+    doom.util.writeU32LE(view, 8, directoryOffset);
+
+    for (idx = 0; idx < lumps.length; idx++) {
+      bytes.set(lumps[idx].bytes, offset);
+      lumps[idx].offset = offset;
+      offset += lumps[idx].bytes.length;
+    }
+
+    for (idx = 0; idx < lumps.length; idx++) {
+      var entryOffset = directoryOffset + idx * 16;
+      var nameBytes = lumps[idx].name.split("").map(function (ch) {
+        return ch.charCodeAt(0) & 0xff;
+      });
+      doom.util.writeU32LE(view, entryOffset, lumps[idx].offset);
+      doom.util.writeU32LE(view, entryOffset + 4, lumps[idx].bytes.length);
+      bytes.set(nameBytes, entryOffset + 8);
+    }
+
+    return buffer;
+  };
+})(globalThis);

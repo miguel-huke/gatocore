@@ -1,0 +1,149 @@
+(function (global) {
+  "use strict";
+
+  if (global.doom && global.doom.__core_loaded) {
+    return;
+  }
+
+  var doom = global.doom || (global.doom = {});
+
+  doom.__core_loaded = true;
+  doom.version = "0.1.0";
+
+  doom.util = doom.util || {};
+
+  doom.util.clamp = function (value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  };
+
+  doom.util.repeat = function (value, count) {
+    return new Array(count + 1).join(value);
+  };
+
+  doom.util.round2 = function (value) {
+    return Math.round(value * 100) / 100;
+  };
+
+  doom.util.distance = function (x1, y1, x2, y2) {
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  doom.util.wrapAngle = function (angle) {
+    var tau = Math.PI * 2;
+    while (angle < -Math.PI) {
+      angle += tau;
+    }
+    while (angle > Math.PI) {
+      angle -= tau;
+    }
+    return angle;
+  };
+
+  doom.util.angleDiff = function (target, source) {
+    return doom.util.wrapAngle(target - source);
+  };
+
+  doom.util.toBytes = function (value) {
+    if (value instanceof ArrayBuffer) {
+      return new Uint8Array(value);
+    }
+    if (ArrayBuffer.isView(value)) {
+      return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    }
+    return new Uint8Array(0);
+  };
+
+  doom.util.readAscii = function (bytes, offset, length) {
+    var chars = [];
+    var end = offset + length;
+    var idx;
+    for (idx = offset; idx < end && idx < bytes.length; idx++) {
+      if (bytes[idx] === 0) {
+        break;
+      }
+      chars.push(String.fromCharCode(bytes[idx]));
+    }
+    return chars.join("");
+  };
+
+  doom.util.readU32LE = function (view, offset) {
+    return view.getUint32(offset, true);
+  };
+
+  doom.util.writeU32LE = function (view, offset, value) {
+    view.setUint32(offset, value >>> 0, true);
+  };
+
+  doom.util.fnv1aBytes = function (bytes) {
+    var hash = 0x811c9dc5;
+    var idx;
+    for (idx = 0; idx < bytes.length; idx++) {
+      hash ^= bytes[idx];
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return ("00000000" + hash.toString(16)).slice(-8);
+  };
+
+  doom.util.fnv1aString = function (text) {
+    var bytes = new Uint8Array(String(text).split("").map(function (ch) {
+      return ch.charCodeAt(0) & 0xff;
+    }));
+    return doom.util.fnv1aBytes(bytes);
+  };
+
+  doom.util.absolutePath = function (path) {
+    try {
+      var resolved = os.realpath(String(path));
+      if (Array.isArray(resolved) && resolved[1] === 0) {
+        return resolved[0];
+      }
+    } catch (err) {
+    }
+    return String(path);
+  };
+
+  doom.util.padRight = function (text, width) {
+    var out = String(text);
+    while (out.length < width) {
+      out += " ";
+    }
+    return out;
+  };
+
+  doom.util.centerText = function (text, width) {
+    var out = String(text);
+    if (out.length >= width) {
+      return out.slice(0, width);
+    }
+    var left = Math.floor((width - out.length) / 2);
+    return doom.util.repeat(" ", left) + out;
+  };
+
+  doom.util.nowMs = function () {
+    try {
+      if (typeof agora_ms === "function") {
+        return agora_ms();
+      }
+    } catch (err) {
+    }
+    return Date.now();
+  };
+
+  doom.util.cleanArgv = function () {
+    var raw = typeof argumentos === "function" ? argumentos() : [];
+    if (raw.length && /\.ptjs$/i.test(String(raw[0]))) {
+      return raw.slice(1);
+    }
+    return raw.slice();
+  };
+
+  doom.util.assert = function (condition, message) {
+    if (!condition) {
+      throw new Error("doom_ptjs: " + message);
+    }
+  };
+
+  doom.sample_root = doom.util.absolutePath(String(global.__pt_base_dir || ".") + "/../..");
+})(globalThis);

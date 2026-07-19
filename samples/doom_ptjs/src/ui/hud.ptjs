@@ -1,0 +1,65 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.ui) {
+    return;
+  }
+
+  doom.ui = {};
+
+  doom.ui.drawCenteredLines = function (buffer, lines, startY) {
+    var idx;
+    for (idx = 0; idx < lines.length; idx++) {
+      var text = doom.util.centerText(lines[idx], buffer.width).slice(0, buffer.width);
+      doom.framebuffer.writeText(buffer, 0, startY + idx, text);
+    }
+  };
+
+  doom.ui.overlayLines = function (state) {
+    if (state.mode === "title") {
+      return [
+        "DOOM PTJS",
+        "Base jogavel em terminal",
+        "",
+        "ENTER ou ESPACO para iniciar",
+        "WASD move | Q/E strafe | ESPACO atira",
+        "Mate todos, alcance a saida >, R reinicia, X sai"
+      ];
+    }
+    if (state.mode === "victory") {
+      return [
+        "FASE LIMPA",
+        "Todos os inimigos cairam e a saida foi alcancada.",
+        "",
+        "R reinicia | X sai"
+      ];
+    }
+    if (state.mode === "game_over") {
+      return [
+        "VOCE MORREU",
+        "O ultimo corredor foi mais rapido.",
+        "",
+        "R reinicia | X sai"
+      ];
+    }
+    return [];
+  };
+
+  doom.ui.drawHud = function (buffer, state) {
+    var line1 = "DOOM PTJS | HP " + state.player.health +
+      " | AR " + state.player.armor +
+      " | AM " + state.player.ammo +
+      " | K " + state.stats.kills + "/" + state.stats.total_kills +
+      " | P " + state.stats.pickups + "/" + state.stats.total_pickups;
+    var line2 = "ang=" + doom.util.round2(state.player.angle) +
+      " | render=" + state.metrics.last_render_ms + "ms | " + state.message;
+    doom.framebuffer.writeText(buffer, 0, 0, doom.util.padRight(line1, buffer.width).slice(0, buffer.width));
+    doom.framebuffer.writeText(buffer, 0, 1, doom.util.padRight(line2, buffer.width).slice(0, buffer.width));
+
+    var overlays = doom.ui.overlayLines(state);
+    if (overlays.length) {
+      doom.ui.drawCenteredLines(buffer, overlays, Math.max(4, Math.floor(buffer.height / 2) - 3));
+    }
+  };
+})(globalThis);

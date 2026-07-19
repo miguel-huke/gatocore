@@ -1,0 +1,7 @@
+{
+  "pointer": "QWORD PTR",
+  "byte": "BYTE PTR",
+  "stack_base": "rbp",
+  "stack_pointer": "rsp",
+  "return_reg": "rax"
+}

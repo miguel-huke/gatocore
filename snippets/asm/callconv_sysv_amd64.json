@@ -1,0 +1,12 @@
+{
+  "name": "sysv_amd64",
+  "arg_regs": [
+    "rdi",
+    "rsi",
+    "rdx",
+    "rcx",
+    "r8",
+    "r9"
+  ],
+  "return_reg": "rax"
+}

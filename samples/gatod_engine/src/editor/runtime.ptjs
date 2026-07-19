@@ -1,0 +1,689 @@
+(function (global) {
+  "use strict";
+
+  var gatod = global.gatod;
+  if (!gatod || gatod.editor) {
+    return;
+  }
+
+  gatod.editor = {};
+  gatod.editor.module_dir = gatod.sample_root + "/src/editor";
+  gatod.editor.last_error = "";
+
+  gatod.editor.backend = function () {
+    if (typeof video_backend === "function") {
+      return String(video_backend());
+    }
+    return "indisponivel";
+  };
+
+  gatod.editor.supported = function () {
+    if (typeof video_suportado !== "function") {
+      gatod.editor.last_error = "backend de video nao disponivel no host";
+      return false;
+    }
+    if (!video_suportado()) {
+      gatod.editor.last_error = gatod.editor.describeFailure();
+      return false;
+    }
+    gatod.editor.last_error = "";
+    return true;
+  };
+
+  gatod.editor.describeFailure = function () {
+    if (typeof video_erro === "function") {
+      var error = String(video_erro() || "");
+      if (error) {
+        return error;
+      }
+    }
+    return gatod.editor.last_error || "janela grafica indisponivel";
+  };
+
+  gatod.editor.open = function (title) {
+    if (!gatod.editor.supported()) {
+      return null;
+    }
+    if (!video_abrir(
+      gatod.config.editor_width,
+      gatod.config.editor_height,
+      gatod.config.editor_scale || 1,
+      title || "Gatod Engine"
+    )) {
+      gatod.editor.last_error = gatod.editor.describeFailure();
+      return null;
+    }
+    gatod.editor.last_error = "";
+    return {
+      active: true,
+      backend: gatod.editor.backend(),
+      width: gatod.config.editor_width,
+      height: gatod.config.editor_height,
+      scale: gatod.config.editor_scale || 1
+    };
+  };
+
+  gatod.editor.close = function (session) {
+    if (!session) {
+      return;
+    }
+    if (typeof video_fechar === "function") {
+      video_fechar();
+    }
+  };
+
+  gatod.editor.present = function (session, bytes) {
+    if (!session || !session.active) {
+      return false;
+    }
+    return !!video_apresentar(bytes);
+  };
+
+  gatod.editor.readInput = function (session) {
+    if (!session || !session.active || typeof video_entrada !== "function") {
+      return {};
+    }
+    return video_entrada() || {};
+  };
+
+  gatod.editor.justPressed = function (input, previous, key) {
+    return !!(input && input[key]) && !(previous && previous[key]);
+  };
+
+  gatod.editor.mouseJustPressed = function (input, previous) {
+    return !!(input && input.mouse_left) && !(previous && previous.mouse_left);
+  };
+
+  gatod.editor.pointInRect = function (x, y, rect) {
+    return x >= rect.x && y >= rect.y && x < rect.x + rect.w && y < rect.y + rect.h;
+  };
+
+  gatod.editor.cycleFocus = function (project, delta) {
+    var order = gatod.engine.panelOrder();
+    var current = order.indexOf(project.focus_panel);
+    if (current < 0) {
+      current = 0;
+    }
+    current = (current + delta + order.length) % order.length;
+    project.focus_panel = order[current];
+    gatod.engine.log(project, "Foco: " + project.focus_panel);
+  };
+
+  gatod.editor.panelRowFromPointer = function (rows, selected, rect, y) {
+    var rowHeight = 10;
+    var visible = Math.max(1, Math.floor((rect.h - 22) / rowHeight));
+    var start = Math.max(0, Math.min(selected - visible + 1, Math.max(0, rows.length - visible)));
+    var offset = Math.floor((y - (rect.y + 18)) / rowHeight);
+    return gatod.util.clamp(start + offset, 0, Math.max(0, rows.length - 1));
+  };
+
+  gatod.editor.handleToolbarPointer = function (project, x, y, rect) {
+    var commands = gatod.engine.commandItems();
+    var buttonWidth = 72;
+    var idx;
+    var bx = rect.x + 6;
+
+    if (!gatod.editor.pointInRect(x, y, rect)) {
+      return false;
+    }
+    for (idx = 0; idx < commands.length && bx + buttonWidth < rect.w; idx++) {
+      if (x >= bx && x < bx + buttonWidth - 6 && y >= rect.y + 4 && y < rect.y + 20) {
+        gatod.editor.handleCommand(project, commands[idx].id);
+        return true;
+      }
+      bx += buttonWidth;
+    }
+    return true;
+  };
+
+  gatod.editor.handlePanelPointer = function (project, panel, rect, x, y) {
+    var rows = gatod.render.panelRows(project, panel);
+    var selected = project.panel_cursor[panel] || 0;
+    if (!gatod.editor.pointInRect(x, y, rect)) {
+      return false;
+    }
+    project.focus_panel = panel;
+    if (rows.length && y >= rect.y + 18) {
+      project.panel_cursor[panel] = gatod.editor.panelRowFromPointer(rows, selected, rect, y);
+    }
+    if (panel === "scene" || panel === "assets" || panel === "script" || panel === "timeline") {
+      gatod.engine.syncSelectionsFromCursors(project);
+    }
+    return true;
+  };
+
+  gatod.editor.handleScriptContextPointer = function (project, x, y, rect) {
+    var state = gatod.engine.scriptEditorState(project);
+    var start = Math.max(0, state.line - 3);
+    var rel;
+    if (project.focus_panel !== "script" || !gatod.editor.pointInRect(x, y, rect)) {
+      return false;
+    }
+    if (y < rect.y + 78) {
+      return true;
+    }
+    rel = Math.floor((y - (rect.y + 78)) / 10);
+    project.script_editor.line = gatod.util.clamp(start + rel, 0, Math.max(0, state.lines.length - 1));
+    return true;
+  };
+
+  gatod.editor.handleTimelineContextPointer = function (project, x, y, rect) {
+    var track = gatod.engine.selectedTimelineTrack(project);
+    var graph = {
+      x: rect.x + 10,
+      y: rect.y + 54,
+      w: rect.w - 20,
+      h: 68
+    };
+    var best = -1;
+    var bestDistance = 1000000;
+    var idx;
+    if (project.focus_panel !== "timeline" || !track || !track.keys || !track.keys.length) {
+      return false;
+    }
+    if (!gatod.editor.pointInRect(x, y, graph)) {
+      return false;
+    }
+    for (idx = 0; idx < track.keys.length; idx++) {
+      var key = track.keys[idx];
+      var keyX = graph.x + 4 + Math.floor((key[0] / Math.max(1, project.timeline.duracao_frames - 1)) * (graph.w - 12));
+      var distance = Math.abs(keyX - x);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = idx;
+      }
+    }
+    if (best >= 0) {
+      project.timeline_editor.key_index = best;
+      project.timeline.cursor = track.keys[best][0];
+      return true;
+    }
+    return false;
+  };
+
+  gatod.editor.handleMouse = function (project) {
+    var input = project.input_state || {};
+    var previous = project.previous_input_state || {};
+    var layout;
+    var x;
+    var y;
+
+    if (!gatod.editor.mouseJustPressed(input, previous) || input.mouse_inside === false) {
+      return false;
+    }
+
+    layout = gatod.render.layout();
+    x = input.mouse_x || 0;
+    y = input.mouse_y || 0;
+
+    if (gatod.editor.handleToolbarPointer(project, x, y, layout.toolbar)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "project", layout.project, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "scene", layout.scene, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "assets", layout.assets, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "inspector", layout.inspector, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "script", layout.script, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "timeline", layout.timeline, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handlePanelPointer(project, "output", layout.output, x, y)) {
+      return true;
+    }
+    if (gatod.editor.handleScriptContextPointer(project, x, y, layout.center_info)) {
+      return true;
+    }
+    if (gatod.editor.handleTimelineContextPointer(project, x, y, layout.center_info)) {
+      return true;
+    }
+    if (gatod.editor.pointInRect(x, y, layout.viewport)) {
+      project.focus_panel = "scene";
+      return true;
+    }
+    return false;
+  };
+
+  gatod.editor.inspectorFields = function (project) {
+    var node = gatod.engine.selectedNode(project);
+    if (!node) {
+      return [];
+    }
+    var fields = [
+      { key: "nome", label: "Nome", type: "text", value: node.nome || "" }
+    ];
+    ["x", "y", "largura", "altura", "zoom"].forEach(function (key) {
+      if (typeof node[key] === "number") {
+        fields.push({ key: key, label: key, type: "number", value: String(node[key]) });
+      }
+    });
+    ["cor", "texto"].forEach(function (key) {
+      if (typeof node[key] === "string") {
+        fields.push({ key: key, label: key, type: "text", value: node[key] });
+      }
+    });
+    if (typeof node.visivel === "boolean") {
+      fields.push({ key: "visivel", label: "visivel", type: "bool", value: !!node.visivel });
+    }
+    return fields;
+  };
+
+  gatod.editor.panelSize = function (project, panel) {
+    switch (panel) {
+      case "project":
+        return gatod.engine.projectRows(project).length;
+      case "scene":
+        return gatod.engine.sceneRows(project).length;
+      case "assets":
+        return gatod.engine.assetRows(project).length;
+      case "inspector":
+        return gatod.editor.inspectorFields(project).length;
+      case "script":
+        return gatod.engine.scriptRows(project).length;
+      case "timeline":
+        return Math.max(1, gatod.engine.timelineRows(project).length + 1);
+      case "output":
+        return Math.max(1, project.logs.length);
+      default:
+        return 0;
+    }
+  };
+
+  gatod.editor.buildState = function (project) {
+    var asset = gatod.engine.selectedAsset(project);
+    var node = gatod.engine.selectedNode(project);
+    var scriptEditor = gatod.engine.scriptEditorState(project);
+    var track = gatod.engine.selectedTimelineTrack(project);
+    var key = gatod.engine.selectedTimelineKey(project);
+    var configRows = Object.keys(project.configuracao.valores).sort().map(function (key) {
+      return { key: key, value: project.configuracao.valores[key] };
+    });
+    var timelineRows = [{
+      id: "timeline_state",
+      label: (project.timeline.reproduzindo ? "Timeline: tocando" : "Timeline: pausada") +
+        " @ " + project.timeline.cursor + "/" + project.timeline.duracao_frames
+    }].concat(gatod.engine.timelineRows(project));
+    return {
+      title: "Gatod Engine | " + project.nome + (project.modo === "play" ? " [Play]" : " [Editor]"),
+      video_backend: gatod.editor.backend(),
+      toolbar: gatod.engine.commandItems(),
+      scene_tree: {
+        selected: project.selected_node_id,
+        rows: gatod.engine.sceneRows(project)
+      },
+      filesystem: {
+        selected: project.selected_asset_id,
+        rows: gatod.engine.assetRows(project),
+        detail: asset ? {
+          nome: asset.nome,
+          tipo: asset.tipo || asset.tipo_recurso || "asset",
+          tamanho_bytes: asset.tamanho_bytes || 0,
+          hash_fnv1a: asset.hash_fnv1a || "",
+          preview: asset.preview || ""
+        } : null
+      },
+      inspector: {
+        title: node ? node.nome + " : " + node.tipo_no : "Sem selecao",
+        node_id: node ? node.id : null,
+        fields: gatod.editor.inspectorFields(project)
+      },
+      scripts: {
+        selected: project.selected_script_id,
+        rows: gatod.engine.scriptRows(project),
+        editor: {
+          line: scriptEditor.line,
+          dirty: scriptEditor.dirty,
+          snippet: scriptEditor.snippet ? scriptEditor.snippet.label : "",
+          linked_nodes: scriptEditor.linked_nodes,
+          lines: scriptEditor.lines
+        }
+      },
+      projects: {
+        rows: gatod.engine.projectRows(project)
+      },
+      timeline: {
+        rows: timelineRows,
+        selection: {
+          track_index: project.timeline_editor.track_index || 0,
+          key_index: project.timeline_editor.key_index || 0,
+          track: track ? {
+            property: track.property,
+            node_name: track.node_name || ""
+          } : null,
+          key: key ? {
+            frame: key[0],
+            value: key[1]
+          } : null
+        }
+      },
+      output: project.logs.slice(-20),
+      plugins: gatod.engine.pluginRows(project),
+      profiler: gatod.util.clone(project.profiler),
+      audio: gatod.engine.audioRows(project),
+      project_settings: configRows,
+      focus_panel: project.focus_panel,
+      command_palette: {
+        aberta: !!project.command_palette.aberta,
+        indice: project.command_palette.indice,
+        items: gatod.engine.commandItems()
+      },
+      status: "nos=" + gatod.engine.flattenNodes(project.scene_root).length +
+        " | assets=" + project.assets.length +
+        " | frame=" + project.frame +
+        " | modo=" + project.modo +
+        " | foco=" + project.focus_panel,
+      viewport: {
+        width: project.viewport.largura,
+        height: project.viewport.altura
+      }
+    };
+  };
+
+  gatod.editor.handleCommand = function (project, name) {
+    switch (name) {
+      case "new_scene":
+        project.scene_root = gatod.engine.createDefaultScene();
+        project.selected_node_id = project.scene_root.id;
+        project.panel_cursor.scene = 0;
+        gatod.engine.syncTimelineMetadata(project);
+        gatod.engine.log(project, "Nova cena criada");
+        break;
+      case "save_scene":
+        gatod.engine.saveScene(project);
+        break;
+      case "load_scene":
+        gatod.engine.loadScene(project);
+        break;
+      case "play":
+        project.modo = "play";
+        gatod.engine.log(project, "Cena em execucao");
+        gatod.engine.emitPluginEvent(project, "mode_changed", { modo: project.modo });
+        break;
+      case "stop":
+        project.modo = "editor";
+        gatod.engine.log(project, "Execucao parada");
+        gatod.engine.emitPluginEvent(project, "mode_changed", { modo: project.modo });
+        break;
+      case "play_toggle":
+        project.modo = project.modo === "play" ? "editor" : "play";
+        gatod.engine.log(project, project.modo === "play" ? "Cena em execucao" : "Execucao parada");
+        gatod.engine.emitPluginEvent(project, "mode_changed", { modo: project.modo });
+        break;
+      case "add_sprite":
+        gatod.engine.addNode(project, "sprite");
+        break;
+      case "add_label":
+        gatod.engine.addNode(project, "label");
+        break;
+      case "add_control":
+        gatod.engine.addNode(project, "control");
+        break;
+      case "add_camera":
+        gatod.engine.addNode(project, "camera");
+        break;
+      case "duplicate_node":
+        gatod.engine.duplicateSelected(project);
+        break;
+      case "delete_node":
+        gatod.engine.deleteSelected(project);
+        break;
+      case "toggle_grid":
+        project.show_grid = !project.show_grid;
+        gatod.engine.log(project, "Grid " + (project.show_grid ? "ativado" : "desativado"));
+        break;
+      case "import_asset":
+        gatod.engine.importAssets(project);
+        break;
+      case "attach_script":
+        gatod.engine.attachSelectedScript(project);
+        break;
+      case "cycle_script":
+        gatod.engine.cycleSelectedScript(project, 1);
+        break;
+      case "export_bundle":
+        gatod.engine.exportBundle(project);
+        break;
+      case "save_script":
+        gatod.engine.saveSelectedScript(project);
+        break;
+      case "insert_script_snippet":
+        gatod.engine.insertScriptSnippet(project);
+        break;
+      case "timeline_add_key":
+        gatod.engine.addTimelineKey(project);
+        break;
+      case "timeline_remove_key":
+        gatod.engine.removeTimelineKey(project);
+        break;
+    }
+  };
+
+  gatod.editor.activateFocused = function (project) {
+    switch (project.focus_panel) {
+      case "project":
+        var projectRows = gatod.engine.projectRows(project);
+        if (projectRows.length) {
+          var activeId = projectRows[project.panel_cursor.project || 0].id;
+          (project.projetos || []).forEach(function (item) {
+            item.ativo = item.id === activeId;
+          });
+          gatod.engine.log(project, "Projeto ativo: " + activeId);
+        }
+        break;
+      case "scene":
+        gatod.engine.syncSelectionsFromCursors(project);
+        break;
+      case "assets":
+        var asset = gatod.engine.selectedAsset(project);
+        if (asset) {
+          if (!gatod.engine.loadSelectedSceneAsset(project)) {
+            gatod.engine.log(project, "Asset: " + asset.nome + " [" + (asset.tipo || "asset") + "]");
+          }
+        }
+        break;
+      case "inspector":
+        gatod.editor.handleCommand(project, "toggle_grid");
+        break;
+      case "script":
+        gatod.engine.attachSelectedScript(project);
+        break;
+      case "timeline":
+        project.timeline.reproduzindo = !project.timeline.reproduzindo;
+        gatod.engine.log(project, project.timeline.reproduzindo ? "Timeline em reproducao" : "Timeline pausada");
+        break;
+      case "output":
+        project.command_palette.aberta = !project.command_palette.aberta;
+        gatod.engine.log(project, project.command_palette.aberta ? "Palette aberta" : "Palette fechada");
+        break;
+    }
+  };
+
+  gatod.editor.processKeyboard = function (project) {
+    var input = project.input_state || {};
+    var previous = project.previous_input_state || {};
+    var panel;
+    var panelSize;
+    var commands = gatod.engine.commandItems();
+
+    gatod.editor.handleMouse(project);
+    panel = project.focus_panel;
+    panelSize = gatod.editor.panelSize(project, panel);
+
+    if (gatod.editor.justPressed(input, previous, "quit") || gatod.editor.justPressed(input, previous, "x")) {
+      project.running = false;
+      return;
+    }
+
+    if (project.command_palette.aberta) {
+      if (gatod.editor.justPressed(input, previous, "up")) {
+        project.command_palette.indice = (project.command_palette.indice + commands.length - 1) % commands.length;
+      }
+      if (gatod.editor.justPressed(input, previous, "down")) {
+        project.command_palette.indice = (project.command_palette.indice + 1) % commands.length;
+      }
+      if (gatod.editor.justPressed(input, previous, "enter") || gatod.editor.justPressed(input, previous, "space")) {
+        gatod.editor.handleCommand(project, commands[project.command_palette.indice].id);
+        project.command_palette.aberta = false;
+      }
+      if (gatod.editor.justPressed(input, previous, "m")) {
+        project.command_palette.aberta = false;
+      }
+      return;
+    }
+
+    if (gatod.editor.justPressed(input, previous, "tab")) {
+      gatod.editor.cycleFocus(project, input.q ? -1 : 1);
+      return;
+    }
+
+    if (gatod.editor.justPressed(input, previous, "m")) {
+      project.command_palette.aberta = true;
+      project.command_palette.indice = 0;
+      gatod.engine.log(project, "Palette aberta");
+      return;
+    }
+
+    if (gatod.editor.justPressed(input, previous, "r")) {
+      gatod.editor.handleCommand(project, "play_toggle");
+    }
+
+    if (gatod.editor.justPressed(input, previous, "e")) {
+      gatod.editor.handleCommand(project, panel === "script" ? "cycle_script" : "export_bundle");
+    }
+
+    if (gatod.editor.justPressed(input, previous, "enter")) {
+      gatod.editor.activateFocused(project);
+    }
+
+    if (panel === "inspector") {
+      if (gatod.editor.justPressed(input, previous, "up")) {
+        gatod.engine.moveCursor(project, panel, -1, panelSize);
+      }
+      if (gatod.editor.justPressed(input, previous, "down")) {
+        gatod.engine.moveCursor(project, panel, 1, panelSize);
+      }
+      if (gatod.editor.justPressed(input, previous, "left")) {
+        gatod.engine.adjustInspectorField(project, -4);
+      }
+      if (gatod.editor.justPressed(input, previous, "right")) {
+        gatod.engine.adjustInspectorField(project, 4);
+      }
+      return;
+    }
+
+    if (gatod.editor.justPressed(input, previous, "up")) {
+      gatod.engine.moveCursor(project, panel, -1, panelSize);
+    }
+    if (gatod.editor.justPressed(input, previous, "down")) {
+      gatod.engine.moveCursor(project, panel, 1, panelSize);
+    }
+
+    if (panel === "script") {
+      if (gatod.editor.justPressed(input, previous, "left")) {
+        gatod.engine.moveScriptEditorCursor(project, -1);
+      }
+      if (gatod.editor.justPressed(input, previous, "right")) {
+        gatod.engine.moveScriptEditorCursor(project, 1);
+      }
+      if (gatod.editor.justPressed(input, previous, "space")) {
+        gatod.engine.attachSelectedScript(project);
+      }
+      if (gatod.editor.justPressed(input, previous, "a")) {
+        gatod.engine.cycleScriptSnippet(project, -1);
+      }
+      if (gatod.editor.justPressed(input, previous, "d")) {
+        gatod.engine.cycleScriptSnippet(project, 1);
+      }
+      if (gatod.editor.justPressed(input, previous, "i")) {
+        gatod.engine.insertScriptSnippet(project);
+      }
+      if (gatod.editor.justPressed(input, previous, "c")) {
+        gatod.engine.toggleScriptComment(project);
+      }
+      if (gatod.editor.justPressed(input, previous, "s")) {
+        gatod.engine.saveSelectedScript(project);
+      }
+      return;
+    }
+
+    if (panel === "timeline") {
+      if (gatod.editor.justPressed(input, previous, "left")) {
+        gatod.engine.moveTimelineKey(project, -1);
+      }
+      if (gatod.editor.justPressed(input, previous, "right")) {
+        gatod.engine.moveTimelineKey(project, 1);
+      }
+      if (gatod.editor.justPressed(input, previous, "a")) {
+        gatod.engine.cycleTimelineKey(project, -1);
+      }
+      if (gatod.editor.justPressed(input, previous, "d")) {
+        gatod.engine.cycleTimelineKey(project, 1);
+      }
+      if (gatod.editor.justPressed(input, previous, "i")) {
+        gatod.engine.addTimelineKey(project);
+      }
+      if (gatod.editor.justPressed(input, previous, "c")) {
+        gatod.engine.removeTimelineKey(project);
+      }
+      if (gatod.editor.justPressed(input, previous, "space")) {
+        project.timeline.reproduzindo = !project.timeline.reproduzindo;
+        gatod.engine.log(project, project.timeline.reproduzindo ? "Timeline em reproducao" : "Timeline pausada");
+      }
+    }
+  };
+
+  gatod.editor.videoInfo = function () {
+    var supported = gatod.editor.supported();
+    return {
+      backend: gatod.editor.backend(),
+      suportado: supported,
+      erro: supported ? "" : (gatod.editor.last_error || gatod.editor.describeFailure())
+    };
+  };
+
+  gatod.editor.run = function (maxFrames) {
+    var session = gatod.editor.open("Gatod Engine");
+    var project = gatod.engine.createProject();
+    var frames = 0;
+
+    if (!session) {
+      mostrar("erro: nao foi possivel abrir a janela do editor");
+      if (gatod.editor.last_error) {
+        mostrar(gatod.editor.last_error);
+      }
+      return 1;
+    }
+
+    try {
+      while (project.running) {
+        var renderStarted;
+        var frameBytes;
+        project.input_state = gatod.editor.readInput(session);
+        gatod.editor.processKeyboard(project);
+        gatod.engine.step(project, gatod.config.target_frame_ms / 1000);
+        renderStarted = gatod.util.nowMs();
+        frameBytes = gatod.render.frame(project);
+        gatod.editor.present(session, frameBytes);
+        gatod.engine.recordRender(project, gatod.util.nowMs() - renderStarted);
+        project.previous_input_state = gatod.util.clone(project.input_state);
+        frames += 1;
+        if (typeof maxFrames === "number" && maxFrames > 0 && frames >= maxFrames) {
+          break;
+        }
+        esperar(gatod.config.target_frame_ms);
+      }
+    } finally {
+      gatod.editor.close(session);
+    }
+    return 0;
+  };
+})(globalThis);

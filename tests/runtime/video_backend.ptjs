@@ -1,0 +1,8 @@
+mostrar video_backend()
+mostrar typeof video_abrir === "function"
+mostrar typeof video_apresentar === "function"
+mostrar typeof video_entrada === "function"
+mostrar typeof video_fechar === "function"
+definir input como video_entrada()
+mostrar typeof input.mouse_x === "number"
+mostrar typeof input.mouse_left === "boolean"

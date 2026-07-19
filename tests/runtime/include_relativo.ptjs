@@ -1,0 +1,2 @@
+incluir("./parte_include.inc")
+mostrar saudacao_incluida

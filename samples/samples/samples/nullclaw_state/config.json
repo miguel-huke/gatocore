@@ -1,0 +1,44 @@
+{
+  "app": "nullclaw-ptjs",
+  "sample_version": "0.1.0-ptjs",
+  "installed_at_ms": 1773927298476.268,
+  "provider": "openai-codex",
+  "model": "gpt-5.4",
+  "memory_backend": "sqlite-lite",
+  "workspace_only": true,
+  "allow_public_bind": false,
+  "gateway": {
+    "host": "127.0.0.1",
+    "port": 3000
+  },
+  "model_routes": [
+    {
+      "nome": "codigo",
+      "tokens": [
+        "codigo",
+        "bug",
+        "fix",
+        "patch"
+      ],
+      "model": "ptjs-code"
+    },
+    {
+      "nome": "seguranca",
+      "tokens": [
+        "seguranca",
+        "scan",
+        "virus",
+        "clam",
+        "malware"
+      ],
+      "model": "ptjs-security"
+    },
+    {
+      "nome": "padrao",
+      "tokens": [],
+      "model": "ptjs-assistant"
+    }
+  ],
+  "observer": "log",
+  "tunnel": "none"
+}

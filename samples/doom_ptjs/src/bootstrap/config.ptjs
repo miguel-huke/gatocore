@@ -1,0 +1,21 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.config) {
+    return;
+  }
+
+  doom.config = {
+    screen_width: 80,
+    screen_height: 32,
+    static_frame_width: 64,
+    static_frame_height: 24,
+    profiler_frame_width: 48,
+    profiler_frame_height: 18,
+    video_width: 200,
+    video_height: 120,
+    video_scale: 5,
+    target_frame_ms: 33
+  };
+})(globalThis);

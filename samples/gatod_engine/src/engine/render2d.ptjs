@@ -1,0 +1,721 @@
+(function (global) {
+  "use strict";
+
+  var gatod = global.gatod;
+  if (!gatod || gatod.render) {
+    return;
+  }
+
+  gatod.render = {};
+
+  gatod.render.font = {
+    " ": ["00000", "00000", "00000", "00000", "00000", "00000", "00000"],
+    "?": ["01110", "10001", "00001", "00010", "00100", "00000", "00100"],
+    ".": ["00000", "00000", "00000", "00000", "00000", "00110", "00110"],
+    ",": ["00000", "00000", "00000", "00000", "00110", "00110", "00100"],
+    ":": ["00000", "00110", "00110", "00000", "00110", "00110", "00000"],
+    ";": ["00000", "00110", "00110", "00000", "00110", "00110", "00100"],
+    "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+    "_": ["00000", "00000", "00000", "00000", "00000", "00000", "11111"],
+    "/": ["00001", "00010", "00100", "01000", "10000", "00000", "00000"],
+    "\\": ["10000", "01000", "00100", "00010", "00001", "00000", "00000"],
+    "|": ["00100", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "[": ["01110", "01000", "01000", "01000", "01000", "01000", "01110"],
+    "]": ["01110", "00010", "00010", "00010", "00010", "00010", "01110"],
+    "(": ["00010", "00100", "01000", "01000", "01000", "00100", "00010"],
+    ")": ["01000", "00100", "00010", "00010", "00010", "00100", "01000"],
+    "+": ["00000", "00100", "00100", "11111", "00100", "00100", "00000"],
+    "=": ["00000", "11111", "00000", "11111", "00000", "00000", "00000"],
+    "!": ["00100", "00100", "00100", "00100", "00100", "00000", "00100"],
+    "#": ["01010", "11111", "01010", "01010", "11111", "01010", "01010"],
+    ">": ["01000", "00100", "00010", "00001", "00010", "00100", "01000"],
+    "<": ["00010", "00100", "01000", "10000", "01000", "00100", "00010"],
+    "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+    "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+    "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+    "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+    "5": ["11111", "10000", "10000", "11110", "00001", "00001", "11110"],
+    "6": ["01110", "10000", "10000", "11110", "10001", "10001", "01110"],
+    "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+    "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+    "9": ["01110", "10001", "10001", "01111", "00001", "00001", "01110"],
+    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+    "C": ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+    "G": ["01110", "10001", "10000", "10111", "10001", "10001", "01110"],
+    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "I": ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
+    "J": ["00001", "00001", "00001", "00001", "10001", "10001", "01110"],
+    "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+    "N": ["10001", "10001", "11001", "10101", "10011", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "P": ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+    "Q": ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
+    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+    "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    "W": ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
+    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+    "Y": ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+    "Z": ["11111", "00001", "00010", "00100", "01000", "10000", "11111"]
+  };
+
+  gatod.render.hexToRgb = function (hex) {
+    var text = String(hex || "#000000").replace("#", "");
+    if (text.length === 3) {
+      text = text[0] + text[0] + text[1] + text[1] + text[2] + text[2];
+    }
+    return [
+      parseInt(text.slice(0, 2), 16) || 0,
+      parseInt(text.slice(2, 4), 16) || 0,
+      parseInt(text.slice(4, 6), 16) || 0
+    ];
+  };
+
+  gatod.render.create = function (width, height, color) {
+    var bytes = new Uint8Array(width * height * 4);
+    var rgb = gatod.render.hexToRgb(color || "#000000");
+    var idx;
+    for (idx = 0; idx < width * height; idx++) {
+      bytes[idx * 4] = rgb[0];
+      bytes[idx * 4 + 1] = rgb[1];
+      bytes[idx * 4 + 2] = rgb[2];
+      bytes[idx * 4 + 3] = 255;
+    }
+    return bytes;
+  };
+
+  gatod.render.put = function (buffer, width, height, x, y, r, g, b, a) {
+    var idx;
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      return;
+    }
+    idx = (y * width + x) * 4;
+    buffer[idx] = r & 0xff;
+    buffer[idx + 1] = g & 0xff;
+    buffer[idx + 2] = b & 0xff;
+    buffer[idx + 3] = a == null ? 255 : (a & 0xff);
+  };
+
+  gatod.render.rect = function (buffer, width, height, x, y, w, h, color) {
+    var rgb = gatod.render.hexToRgb(color);
+    var yy;
+    var xx;
+    for (yy = y; yy < y + h; yy++) {
+      for (xx = x; xx < x + w; xx++) {
+        gatod.render.put(buffer, width, height, xx, yy, rgb[0], rgb[1], rgb[2], 255);
+      }
+    }
+  };
+
+  gatod.render.outline = function (buffer, width, height, x, y, w, h, color) {
+    gatod.render.rect(buffer, width, height, x, y, w, 1, color);
+    gatod.render.rect(buffer, width, height, x, y + h - 1, w, 1, color);
+    gatod.render.rect(buffer, width, height, x, y, 1, h, color);
+    gatod.render.rect(buffer, width, height, x + w - 1, y, 1, h, color);
+  };
+
+  gatod.render.blit = function (dst, dstWidth, dstHeight, src, srcWidth, srcHeight, dx, dy) {
+    var x;
+    var y;
+    var srcIdx;
+    var dstIdx;
+    for (y = 0; y < srcHeight; y++) {
+      if (dy + y < 0 || dy + y >= dstHeight) {
+        continue;
+      }
+      for (x = 0; x < srcWidth; x++) {
+        if (dx + x < 0 || dx + x >= dstWidth) {
+          continue;
+        }
+        srcIdx = (y * srcWidth + x) * 4;
+        dstIdx = ((dy + y) * dstWidth + (dx + x)) * 4;
+        dst[dstIdx] = src[srcIdx];
+        dst[dstIdx + 1] = src[srcIdx + 1];
+        dst[dstIdx + 2] = src[srcIdx + 2];
+        dst[dstIdx + 3] = src[srcIdx + 3];
+      }
+    }
+  };
+
+  gatod.render.glyph = function (char) {
+    var key = String(char || " ").toUpperCase();
+    return gatod.render.font[key] || gatod.render.font["?"];
+  };
+
+  gatod.render.drawChar = function (buffer, width, height, x, y, ch, color, scale) {
+    var pattern = gatod.render.glyph(ch);
+    var rgb = gatod.render.hexToRgb(color || "#ffffff");
+    var yy;
+    var xx;
+    var sy;
+    var sx;
+    scale = scale || 1;
+    for (yy = 0; yy < pattern.length; yy++) {
+      for (xx = 0; xx < pattern[yy].length; xx++) {
+        if (pattern[yy][xx] !== "1") {
+          continue;
+        }
+        for (sy = 0; sy < scale; sy++) {
+          for (sx = 0; sx < scale; sx++) {
+            gatod.render.put(
+              buffer,
+              width,
+              height,
+              x + xx * scale + sx,
+              y + yy * scale + sy,
+              rgb[0],
+              rgb[1],
+              rgb[2],
+              255
+            );
+          }
+        }
+      }
+    }
+  };
+
+  gatod.render.measureText = function (text, scale) {
+    return String(text || "").length * (6 * (scale || 1));
+  };
+
+  gatod.render.fitText = function (text, maxWidth, scale) {
+    var source = String(text == null ? "" : text);
+    var maxChars = Math.max(1, Math.floor(maxWidth / (6 * (scale || 1))));
+    if (source.length <= maxChars) {
+      return source;
+    }
+    if (maxChars <= 3) {
+      return source.slice(0, maxChars);
+    }
+    return source.slice(0, maxChars - 3) + "...";
+  };
+
+  gatod.render.text = function (buffer, width, height, x, y, text, color, scale, maxWidth) {
+    var source = String(text == null ? "" : text);
+    var idx;
+    var draw = maxWidth ? gatod.render.fitText(source, maxWidth, scale) : source;
+    for (idx = 0; idx < draw.length; idx++) {
+      gatod.render.drawChar(buffer, width, height, x + idx * (6 * (scale || 1)), y, draw[idx], color, scale || 1);
+    }
+  };
+
+  gatod.render.drawGrid = function (buffer, width, height, size) {
+    var x;
+    var y;
+    for (x = 0; x < width; x += size) {
+      gatod.render.rect(buffer, width, height, x, 0, 1, height, "#19212a");
+    }
+    for (y = 0; y < height; y += size) {
+      gatod.render.rect(buffer, width, height, 0, y, width, 1, "#19212a");
+    }
+  };
+
+  gatod.render.camera = function (project) {
+    var nodes = gatod.engine.flattenNodes(project.scene_root);
+    var camera = nodes.find(function (node) { return node.tipo_no === "Camera2D"; });
+    if (!camera) {
+      return { x: project.viewport.largura / 2, y: project.viewport.altura / 2, zoom: 1 };
+    }
+    return camera;
+  };
+
+  gatod.render.worldToScreen = function (project, node, camera) {
+    return {
+      x: Math.floor(node.x - camera.x + project.viewport.largura / 2),
+      y: Math.floor(node.y - camera.y + project.viewport.altura / 2)
+    };
+  };
+
+  gatod.render.drawTileMap = function (buffer, width, height, node) {
+    var tileSize = node.tamanho_tile || 16;
+    var y;
+    var x;
+    var idx;
+    var tile;
+    var color;
+    for (y = 0; y < node.altura_mapa; y++) {
+      for (x = 0; x < node.largura_mapa; x++) {
+        idx = y * node.largura_mapa + x;
+        tile = node.tiles[idx] || 0;
+        color = (node.paleta || {})[tile] || "#22303d";
+        gatod.render.rect(buffer, width, height, x * tileSize, y * tileSize, tileSize, tileSize, color);
+      }
+    }
+  };
+
+  gatod.render.drawNode = function (buffer, project, width, height, node, camera) {
+    var screen;
+    var world;
+    if (node.visivel === false) {
+      return;
+    }
+    if (node.tipo_no === "TileMap") {
+      gatod.render.drawTileMap(buffer, width, height, node);
+      return;
+    }
+    if (node.tipo_no === "Control") {
+      gatod.render.rect(buffer, width, height, node.x, node.y, node.largura, node.altura, node.cor || "#263341");
+      gatod.render.outline(buffer, width, height, node.x, node.y, node.largura, node.altura, "#8fb2d8");
+      return;
+    }
+    if (node.tipo_no === "Label") {
+      gatod.render.text(buffer, width, height, node.x, node.y, node.texto || "", node.cor || "#f0f0f0", 1, 120);
+      return;
+    }
+    if (node.tipo_no === "Camera2D") {
+      if (project.modo === "editor") {
+        screen = gatod.render.worldToScreen(project, node, camera);
+        gatod.render.outline(buffer, width, height, screen.x - 8, screen.y - 8, 16, 16, "#f7d774");
+      }
+      return;
+    }
+    if (node.tipo_no === "Node2D" || node.tipo_no === "Sprite2D") {
+      world = gatod.render.worldToScreen(project, node, camera);
+      gatod.render.rect(
+        buffer,
+        width,
+        height,
+        world.x - Math.floor((node.largura || 16) / 2),
+        world.y - Math.floor((node.altura || 16) / 2),
+        node.largura || 16,
+        node.altura || 16,
+        node.cor || "#d0d0d0"
+      );
+      if (project.selected_node_id === node.id) {
+        gatod.render.outline(
+          buffer,
+          width,
+          height,
+          world.x - Math.floor((node.largura || 16) / 2) - 1,
+          world.y - Math.floor((node.altura || 16) / 2) - 1,
+          (node.largura || 16) + 2,
+          (node.altura || 16) + 2,
+          "#f8e36a"
+        );
+      }
+    }
+  };
+
+  gatod.render.viewportFrame = function (project) {
+    var buffer = gatod.render.create(project.viewport.largura, project.viewport.altura, project.viewport.cor_fundo || "#10161f");
+    var camera = gatod.render.camera(project);
+    var nodes = gatod.engine.flattenNodes(project.scene_root);
+
+    if (project.show_grid) {
+      gatod.render.drawGrid(buffer, project.viewport.largura, project.viewport.altura, 16);
+    }
+
+    nodes.forEach(function (node) {
+      gatod.render.drawNode(buffer, project, project.viewport.largura, project.viewport.altura, node, camera);
+    });
+
+    gatod.render.rect(buffer, project.viewport.largura, project.viewport.altura, 0, project.viewport.altura - 14, project.viewport.largura, 14, "#0c1014");
+    gatod.render.rect(buffer, project.viewport.largura, project.viewport.altura, 6, project.viewport.altura - 10, Math.min(project.viewport.largura - 12, 60 + nodes.length * 6), 4, "#4aa3ff");
+    return buffer;
+  };
+
+  gatod.render.layout = function () {
+    return {
+      toolbar: { x: 0, y: 0, w: gatod.config.editor_width, h: 24 },
+      project: { x: 0, y: 24, w: 160, h: 76 },
+      scene: { x: 0, y: 100, w: 160, h: 140 },
+      assets: { x: 0, y: 240, w: 160, h: 104 },
+      viewport: { x: 160, y: 24, w: gatod.config.viewport_width, h: gatod.config.viewport_height },
+      inspector: { x: 480, y: 24, w: 160, h: 116 },
+      script: { x: 480, y: 140, w: 160, h: 84 },
+      timeline: { x: 480, y: 224, w: 160, h: 70 },
+      output: { x: 480, y: 294, w: 160, h: 50 },
+      status: { x: 0, y: 344, w: gatod.config.editor_width, h: 16 },
+      center_info: { x: 160, y: 208, w: 320, h: 136 }
+    };
+  };
+
+  gatod.render.panelRows = function (project, panel) {
+    var node;
+    switch (panel) {
+      case "project":
+        return gatod.engine.projectRows(project);
+      case "scene":
+        return gatod.engine.sceneRows(project);
+      case "assets":
+        return gatod.engine.assetRows(project);
+      case "inspector":
+        node = gatod.engine.selectedNode(project);
+        if (!node) {
+          return [];
+        }
+        return [
+          { id: "nome", label: "Nome: " + node.nome },
+          typeof node.x === "number" ? { id: "x", label: "x: " + Math.round(node.x) } : null,
+          typeof node.y === "number" ? { id: "y", label: "y: " + Math.round(node.y) } : null,
+          typeof node.largura === "number" ? { id: "largura", label: "largura: " + Math.round(node.largura) } : null,
+          typeof node.altura === "number" ? { id: "altura", label: "altura: " + Math.round(node.altura) } : null,
+          typeof node.zoom === "number" ? { id: "zoom", label: "zoom: " + gatod.util.round2(node.zoom) } : null,
+          typeof node.cor === "string" ? { id: "cor", label: "cor: " + node.cor } : null,
+          typeof node.texto === "string" ? { id: "texto", label: "texto: " + node.texto } : null,
+          typeof node.visivel === "boolean" ? { id: "visivel", label: "visivel: " + node.visivel } : null
+        ].filter(Boolean);
+      case "script":
+        return gatod.engine.scriptRows(project);
+      case "timeline":
+        return [{
+          id: "timeline_state",
+          label: (project.timeline.reproduzindo ? "tocando" : "pausada") +
+            " " + project.timeline.cursor + "/" + project.timeline.duracao_frames
+        }].concat(gatod.engine.timelineRows(project));
+      case "output":
+        return project.logs.slice(-32).map(function (line, index) {
+          return { id: "log_" + index, label: line };
+        });
+      default:
+        return [];
+    }
+  };
+
+  gatod.render.selectedIndex = function (project, panel) {
+    switch (panel) {
+      case "project":
+      case "scene":
+      case "assets":
+      case "inspector":
+      case "script":
+      case "timeline":
+      case "output":
+        return project.panel_cursor[panel] || 0;
+      default:
+        return 0;
+    }
+  };
+
+  gatod.render.drawPanel = function (buffer, width, height, rect, title, rows, selected, focus) {
+    var headerColor = focus ? "#2f5375" : "#253241";
+    var borderColor = focus ? "#6fb3ff" : "#405466";
+    var y = rect.y + 18;
+    var rowHeight = 10;
+    var visible = Math.max(1, Math.floor((rect.h - 22) / rowHeight));
+    var start = Math.max(0, Math.min(selected - visible + 1, Math.max(0, rows.length - visible)));
+    var index;
+    var row;
+
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#131b24");
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, 14, headerColor);
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, borderColor);
+    gatod.render.text(buffer, width, height, rect.x + 6, rect.y + 3, title, "#eef6ff", 1, rect.w - 12);
+
+    for (index = 0; index < visible && (start + index) < rows.length; index++) {
+      row = rows[start + index];
+      if (start + index === selected) {
+        gatod.render.rect(buffer, width, height, rect.x + 2, y - 1, rect.w - 4, rowHeight, focus ? "#22415c" : "#1d2a38");
+      }
+      gatod.render.text(
+        buffer,
+        width,
+        height,
+        rect.x + 6,
+        y,
+        (row.label || row.id || ""),
+        start + index === selected ? "#ffffff" : "#b2c4d5",
+        1,
+        rect.w - 12
+      );
+      y += rowHeight;
+    }
+  };
+
+  gatod.render.drawToolbar = function (buffer, width, height, rect, project) {
+    var commands = gatod.engine.commandItems();
+    var x = rect.x + 6;
+    var idx;
+    var item;
+    var buttonWidth = 72;
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#0b1015");
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#273646");
+    for (idx = 0; idx < commands.length && x + buttonWidth < rect.w; idx++) {
+      item = commands[idx];
+      gatod.render.rect(buffer, width, height, x, rect.y + 4, buttonWidth - 6, 16, "#16212c");
+      gatod.render.outline(buffer, width, height, x, rect.y + 4, buttonWidth - 6, 16, "#35506a");
+      gatod.render.text(buffer, width, height, x + 4, rect.y + 9, item.label, "#d5e6f7", 1, buttonWidth - 14);
+      x += buttonWidth;
+    }
+    gatod.render.text(
+      buffer,
+      width,
+      height,
+      rect.w - 126,
+      rect.y + 9,
+      project.modo === "play" ? "MODO PLAY" : "MODO EDITOR",
+      project.modo === "play" ? "#61e0a1" : "#f2bf5a",
+      1,
+      120
+    );
+  };
+
+  gatod.render.drawViewportPanel = function (buffer, width, height, rect, project) {
+    var world = gatod.render.viewportFrame(project);
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#0e141c");
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#405466");
+    gatod.render.blit(buffer, width, height, world, project.viewport.largura, project.viewport.altura, rect.x, rect.y);
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, 14, "#13212d");
+    gatod.render.text(buffer, width, height, rect.x + 6, rect.y + 3, "Viewport 2D", "#eef6ff", 1, 120);
+    gatod.render.text(
+      buffer,
+      width,
+      height,
+      rect.x + rect.w - 90,
+      rect.y + 3,
+      project.show_grid ? "GRID ON" : "GRID OFF",
+      project.show_grid ? "#6fe0ad" : "#f2bf5a",
+      1,
+      84
+    );
+  };
+
+  gatod.render.drawContextFrame = function (buffer, width, height, rect, title, accent) {
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#10161d");
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, 16, accent || "#1b3550");
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#364a5d");
+    gatod.render.text(buffer, width, height, rect.x + 8, rect.y + 4, title, "#eff7ff", 1, rect.w - 16);
+  };
+
+  gatod.render.drawContextLines = function (buffer, width, height, rect, lines, startY, color) {
+    var idx;
+    for (idx = 0; idx < lines.length; idx++) {
+      gatod.render.text(buffer, width, height, rect.x + 8, startY + idx * 11, lines[idx], color || "#c1d1e0", 1, rect.w - 16);
+    }
+  };
+
+  gatod.render.drawScriptContext = function (buffer, width, height, rect, project) {
+    var state = gatod.engine.scriptEditorState(project);
+    var start = Math.max(0, state.line - 3);
+    var end = Math.min(state.lines.length, start + 8);
+    var idx;
+
+    gatod.render.drawContextFrame(buffer, width, height, rect, "Script Editor", "#234662");
+    gatod.render.drawContextLines(buffer, width, height, rect, [
+      "Arquivo: " + state.nome + (state.dirty ? " [dirty]" : ""),
+      "Linha: " + (state.line + 1) + "/" + Math.max(1, state.lines.length),
+      "Snippet: " + (state.snippet ? state.snippet.label : "nenhum"),
+      "Nos: " + (state.linked_nodes.length ? state.linked_nodes.join(", ") : "nenhum"),
+      "Controles: <- -> linha | A/D snippet | I inserir | C comentar | S salvar"
+    ], rect.y + 22, "#c8d8e8");
+
+    for (idx = start; idx < end; idx++) {
+      if (idx === state.line) {
+        gatod.render.rect(buffer, width, height, rect.x + 6, rect.y + 78 + (idx - start) * 10, rect.w - 12, 9, "#243d54");
+      }
+      gatod.render.text(
+        buffer,
+        width,
+        height,
+        rect.x + 10,
+        rect.y + 80 + (idx - start) * 10,
+        gatod.util.pad(String(idx + 1), 2) + " " + state.lines[idx],
+        idx === state.line ? "#ffffff" : "#b7c8d7",
+        1,
+        rect.w - 20
+      );
+    }
+  };
+
+  gatod.render.drawTimelineGraph = function (buffer, width, height, rect, project) {
+    var track = gatod.engine.selectedTimelineTrack(project);
+    var selected = gatod.engine.selectedTimelineKey(project);
+    var graph = {
+      x: rect.x + 10,
+      y: rect.y + 54,
+      w: rect.w - 20,
+      h: 68
+    };
+    var minValue;
+    var maxValue;
+    var idx;
+
+    gatod.render.drawContextFrame(buffer, width, height, rect, "Timeline Editor", "#244e45");
+    if (!track || !track.keys || !track.keys.length) {
+      gatod.render.drawContextLines(buffer, width, height, rect, ["Nenhuma trilha selecionada"], rect.y + 24);
+      return;
+    }
+
+    minValue = Math.min.apply(null, track.keys.map(function (item) { return item[1]; }));
+    maxValue = Math.max.apply(null, track.keys.map(function (item) { return item[1]; }));
+
+    gatod.render.drawContextLines(buffer, width, height, rect, [
+      "Trilha: " + track.property + " @ " + (track.node_name || "sem_no"),
+      "Key: " + (selected ? (selected[0] + " -> " + Math.round(selected[1])) : "nenhuma"),
+      "Controles: <- -> move key | A/D seleciona | I adiciona | C remove | Espaco play"
+    ], rect.y + 22, "#cbe6dc");
+
+    gatod.render.rect(buffer, width, height, graph.x, graph.y, graph.w, graph.h, "#0c1418");
+    gatod.render.outline(buffer, width, height, graph.x, graph.y, graph.w, graph.h, "#355c58");
+    gatod.render.rect(buffer, width, height, graph.x + 2, graph.y + graph.h - 12, graph.w - 4, 1, "#2a3e45");
+
+    for (idx = 0; idx < track.keys.length; idx++) {
+      var key = track.keys[idx];
+      var x = graph.x + 4 + Math.floor((key[0] / Math.max(1, project.timeline.duracao_frames - 1)) * (graph.w - 12));
+      var norm = maxValue === minValue ? 0.5 : ((key[1] - minValue) / Math.max(1, maxValue - minValue));
+      var barHeight = 10 + Math.floor(norm * (graph.h - 24));
+      var color = selected === key ? "#f7d774" : "#6fb3ff";
+      gatod.render.rect(buffer, width, height, x, graph.y + graph.h - 12 - barHeight, 4, barHeight, color);
+    }
+  };
+
+  gatod.render.drawAssetContext = function (buffer, width, height, rect, project) {
+    var asset = gatod.engine.selectedAsset(project);
+    var lines;
+    gatod.render.drawContextFrame(buffer, width, height, rect, "Asset Import", "#4b3c1e");
+    if (!asset) {
+      gatod.render.drawContextLines(buffer, width, height, rect, ["Nenhum asset selecionado"], rect.y + 24);
+      return;
+    }
+    lines = [
+      "Nome: " + asset.nome,
+      "Tipo: " + (asset.tipo || asset.tipo_recurso || "asset"),
+      "Bytes: " + (asset.tamanho_bytes || 0),
+      "Hash: " + String(asset.hash_fnv1a || "").slice(0, 8),
+      "Preview: " + (asset.preview || "n/a"),
+      asset.tipo === "scene" ? "Enter carrega a cena importada" : "Importacao real via runtime/imports"
+    ];
+    gatod.render.drawContextLines(buffer, width, height, rect, lines, rect.y + 24, "#e7d5ae");
+  };
+
+  gatod.render.drawMetricsContext = function (buffer, width, height, rect, project) {
+    var buses = gatod.engine.audioRows(project);
+    var plugins = gatod.engine.pluginRows(project);
+    var lines = [
+      "Step: " + gatod.util.round2(project.profiler.step_ms) + "ms avg " + gatod.util.round2(project.profiler.media_step_ms),
+      "Render: " + gatod.util.round2(project.profiler.render_ms) + "ms avg " + gatod.util.round2(project.profiler.media_render_ms),
+      "Plugin event: " + project.profiler.ultimo_evento,
+      "Imports: " + project.profiler.imports_assets + " | Saves: " + project.profiler.saves_script,
+      "Timeline edits: " + project.profiler.edits_timeline + " | Mix: " + project.profiler.mixagens_audio,
+      "Overlay: " + (project.plugin_overlay || "n/a")
+    ];
+    var idx;
+
+    gatod.render.drawContextFrame(buffer, width, height, rect, "Monitoramento", "#513158");
+    gatod.render.drawContextLines(buffer, width, height, rect, lines, rect.y + 22, "#e1cff0");
+
+    for (idx = 0; idx < Math.min(4, buses.length); idx++) {
+      var y = rect.y + 90 + idx * 10;
+      gatod.render.text(buffer, width, height, rect.x + 8, y, buses[idx].label, "#d7e6f2", 1, 120);
+      gatod.render.rect(buffer, width, height, rect.x + 142, y + 1, 110, 6, "#18222c");
+      gatod.render.rect(
+        buffer,
+        width,
+        height,
+        rect.x + 142,
+        y + 1,
+        Math.floor(Math.min(1, project.audio_buses[idx].nivel || 0) * 110),
+        6,
+        project.audio_buses[idx].clipping ? "#ff6b6b" : "#5fd0a4"
+      );
+    }
+
+    gatod.render.text(buffer, width, height, rect.x + 8, rect.y + 122, "Plugins: " + plugins.map(function (item) { return item.id; }).join(", "), "#c9d9e7", 1, rect.w - 16);
+  };
+
+  gatod.render.drawCenterInfo = function (buffer, width, height, rect, project) {
+    var selectedNode = gatod.engine.selectedNode(project);
+    var selectedScript = gatod.engine.selectedScript(project);
+    var asset = gatod.engine.selectedAsset(project);
+    var lines = [
+      "Projeto: " + project.nome,
+      "No: " + (selectedNode ? selectedNode.nome + " : " + selectedNode.tipo_no : "nenhum"),
+      "Script: " + (selectedScript ? selectedScript.nome : "nenhum"),
+      "Asset: " + (asset ? asset.nome : "nenhum"),
+      "Plugins: " + gatod.engine.pluginRows(project).length + " | Buses: " + gatod.engine.audioRows(project).length,
+      "Controles: TAB foco | M palette | R play | E exporta | X sai"
+    ];
+
+    if (project.focus_panel === "script") {
+      gatod.render.drawScriptContext(buffer, width, height, rect, project);
+      return;
+    }
+    if (project.focus_panel === "timeline") {
+      gatod.render.drawTimelineGraph(buffer, width, height, rect, project);
+      return;
+    }
+    if (project.focus_panel === "assets") {
+      gatod.render.drawAssetContext(buffer, width, height, rect, project);
+      return;
+    }
+    if (project.focus_panel === "output") {
+      gatod.render.drawMetricsContext(buffer, width, height, rect, project);
+      return;
+    }
+
+    gatod.render.drawContextFrame(buffer, width, height, rect, "Workspace / Runtime", "#1b3550");
+    gatod.render.drawContextLines(buffer, width, height, rect, lines, rect.y + 22, "#c1d1e0");
+  };
+
+  gatod.render.drawCommandPalette = function (buffer, width, height, project) {
+    var rect = { x: 182, y: 82, w: 276, h: 196 };
+    var items = gatod.engine.commandItems();
+    var idx;
+    var y = rect.y + 22;
+
+    gatod.render.rect(buffer, width, height, 0, 0, width, height, "#000000");
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#0d141b");
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#5d93c8");
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, 16, "#1b3550");
+    gatod.render.text(buffer, width, height, rect.x + 8, rect.y + 4, "Palette de Comandos", "#ffffff", 1, rect.w - 16);
+
+    for (idx = 0; idx < items.length; idx++) {
+      if (y + 10 > rect.y + rect.h - 4) {
+        break;
+      }
+      if (idx === project.command_palette.indice) {
+        gatod.render.rect(buffer, width, height, rect.x + 4, y - 1, rect.w - 8, 10, "#294867");
+      }
+      gatod.render.text(buffer, width, height, rect.x + 10, y, items[idx].label, idx === project.command_palette.indice ? "#ffffff" : "#d0e1f2", 1, rect.w - 20);
+      y += 11;
+    }
+  };
+
+  gatod.render.drawStatus = function (buffer, width, height, rect, project) {
+    var status = [
+      "Focus=" + project.focus_panel,
+      "Frame=" + project.frame,
+      "Timeline=" + (project.timeline.reproduzindo ? "on" : "off"),
+      "Step=" + gatod.util.round2(project.profiler.step_ms) + "ms",
+      "Render=" + gatod.util.round2(project.profiler.render_ms) + "ms",
+      "Logs=" + project.logs.length
+    ].join(" | ");
+    gatod.render.rect(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#0a0f14");
+    gatod.render.outline(buffer, width, height, rect.x, rect.y, rect.w, rect.h, "#203242");
+    gatod.render.text(buffer, width, height, rect.x + 8, rect.y + 4, status, "#d7e6f2", 1, rect.w - 16);
+  };
+
+  gatod.render.frame = function (project) {
+    var width = gatod.config.editor_width;
+    var height = gatod.config.editor_height;
+    var layout = gatod.render.layout();
+    var buffer = gatod.render.create(width, height, "#0b1015");
+
+    gatod.render.drawToolbar(buffer, width, height, layout.toolbar, project);
+    gatod.render.drawPanel(buffer, width, height, layout.project, "Projects", gatod.render.panelRows(project, "project"), project.panel_cursor.project || 0, project.focus_panel === "project");
+    gatod.render.drawPanel(buffer, width, height, layout.scene, "Scene", gatod.render.panelRows(project, "scene"), project.panel_cursor.scene || 0, project.focus_panel === "scene");
+    gatod.render.drawPanel(buffer, width, height, layout.assets, "Assets", gatod.render.panelRows(project, "assets"), project.panel_cursor.assets || 0, project.focus_panel === "assets");
+    gatod.render.drawViewportPanel(buffer, width, height, layout.viewport, project);
+    gatod.render.drawCenterInfo(buffer, width, height, layout.center_info, project);
+    gatod.render.drawPanel(buffer, width, height, layout.inspector, "Inspector", gatod.render.panelRows(project, "inspector"), project.panel_cursor.inspector || 0, project.focus_panel === "inspector");
+    gatod.render.drawPanel(buffer, width, height, layout.script, "Scripts", gatod.render.panelRows(project, "script"), project.panel_cursor.script || 0, project.focus_panel === "script");
+    gatod.render.drawPanel(buffer, width, height, layout.timeline, "Timeline", gatod.render.panelRows(project, "timeline"), project.panel_cursor.timeline || 0, project.focus_panel === "timeline");
+    gatod.render.drawPanel(buffer, width, height, layout.output, "Output", gatod.render.panelRows(project, "output"), project.panel_cursor.output || 0, project.focus_panel === "output");
+    gatod.render.drawStatus(buffer, width, height, layout.status, project);
+
+    if (project.command_palette.aberta) {
+      gatod.render.drawCommandPalette(buffer, width, height, project);
+    }
+
+    return buffer;
+  };
+})(globalThis);

@@ -1,0 +1,17 @@
+{
+  "tasks": [
+    {
+      "id": "cron-1773927375101.057-811",
+      "kind": "agent",
+      "expression": "5s",
+      "payload": "resuma status e memoria",
+      "meta": {
+        "model": "ptjs-router"
+      },
+      "enabled": true,
+      "next_ms": 1773927380101.066,
+      "created_at_ms": 1773927375101.072
+    }
+  ],
+  "runs": []
+}

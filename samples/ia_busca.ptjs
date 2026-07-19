@@ -1,0 +1,31 @@
+definir ok como resultado(1, "pipeline pronto")
+mostrar ok.ok
+mostrar ok.valor
+
+definir msg como mensagem_modelo("usuario", "Quero buscar sobre roteamento tcp no GatoCore")
+mostrar msg.papel
+mostrar tokenizar(msg.conteudo).join("|")
+
+definir emb como embedding(msg.conteudo, 8)
+mostrar tamanho de emb
+
+definir indice como indice_vetorial([
+  "gato curioso em ascii",
+  "roteamento tcp bgp e latencia",
+  "modelo local quantizado"
+], 8)
+
+mostrar vizinho_proximo(indice, "roteamento tcp bgp", 1)[0].item
+
+definir fluxo como pipeline([
+  function (entrada) { return entrada.trim() },
+  function (entrada) { return entrada.toUpperCase() }
+])
+
+mostrar fluxo.executar("  ola ptjs  ")
+
+definir bot como agente({ pipeline: fluxo })
+mostrar bot.executar("gato")
+
+definir memoria como rag("modelo local quantizado", indice, 1)
+mostrar memoria.contexto[0].item

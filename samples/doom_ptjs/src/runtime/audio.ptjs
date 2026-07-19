@@ -1,0 +1,306 @@
+(function (global) {
+  "use strict";
+
+  var doom = global.doom;
+  if (!doom || doom.audio) {
+    return;
+  }
+
+  doom.audio = {};
+  doom.audio.module_dir = String(global.__pt_base_dir || ".");
+  doom.audio.player_cache = {};
+  doom.audio.track_cache = {};
+
+  doom.audio.commandAvailable = function (name) {
+    var nullFd = os.open("/dev/null", os.O_WRONLY);
+    var ok = os.exec(["which", String(name || "")], {
+      usePath: true,
+      stdout: nullFd >= 0 ? nullFd : undefined,
+      stderr: nullFd >= 0 ? nullFd : undefined
+    }) === 0;
+    if (nullFd >= 0) {
+      os.close(nullFd);
+    }
+    return ok;
+  };
+
+  doom.audio.commandHealthy = function (name, testArgs) {
+    var key = name + " " + String(testArgs || "");
+    if (doom.audio.player_cache[key] != null) {
+      return doom.audio.player_cache[key];
+    }
+    doom.audio.player_cache[key] = doom.audio.commandAvailable(name);
+    return doom.audio.player_cache[key];
+  };
+
+  doom.audio.available = function () {
+    return doom.audio.commandHealthy("paplay", "--version") || doom.audio.commandHealthy("aplay", "--version");
+  };
+
+  doom.audio.effectsEnabled = function () {
+    return !!(doom.window && doom.window.session && doom.window.session.active);
+  };
+
+  doom.audio.playerCommand = function () {
+    if (doom.audio.commandHealthy("paplay", "--version")) {
+      return "paplay";
+    }
+    if (doom.audio.commandHealthy("aplay", "--version")) {
+      return "aplay -q";
+    }
+    return "";
+  };
+
+  doom.audio.tmpPath = function (prefix) {
+    return "/tmp/gatocore_" + prefix + "_" + os.getpid() + "_" +
+      Math.floor(doom.util.nowMs()) + "_" + Math.floor(Math.random() * 100000) + ".wav";
+  };
+
+  doom.audio.makeToneWav = function (frequency, durationMs, volume, waveform) {
+    var sampleRate = 22050;
+    var sampleCount = Math.max(1, Math.floor(sampleRate * durationMs / 1000));
+    var dataSize = sampleCount * 2;
+    var bytes = new Uint8Array(44 + dataSize);
+    var view = new DataView(bytes.buffer);
+    var idx;
+
+    frequency = Math.max(40, Number(frequency || 440));
+    volume = doom.util.clamp(Number(volume == null ? 0.18 : volume), 0, 1);
+    waveform = waveform || "square";
+
+    function writeAscii(offset, text) {
+      var pos;
+      for (pos = 0; pos < text.length; pos++) {
+        bytes[offset + pos] = text.charCodeAt(pos) & 0xff;
+      }
+    }
+
+    writeAscii(0, "RIFF");
+    doom.util.writeU32LE(view, 4, 36 + dataSize);
+    writeAscii(8, "WAVE");
+    writeAscii(12, "fmt ");
+    doom.util.writeU32LE(view, 16, 16);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    doom.util.writeU32LE(view, 24, sampleRate);
+    doom.util.writeU32LE(view, 28, sampleRate * 2);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeAscii(36, "data");
+    doom.util.writeU32LE(view, 40, dataSize);
+
+    for (idx = 0; idx < sampleCount; idx++) {
+      var t = idx / sampleRate;
+      var phase = 2 * Math.PI * frequency * t;
+      var value;
+      if (waveform === "sine") {
+        value = Math.sin(phase);
+      } else if (waveform === "saw") {
+        value = 2 * ((frequency * t) - Math.floor(0.5 + frequency * t));
+      } else {
+        value = Math.sin(phase) >= 0 ? 1 : -1;
+      }
+      var fade = 1 - idx / sampleCount;
+      var sample = Math.max(-1, Math.min(1, value * volume * (0.55 + fade * 0.45)));
+      view.setInt16(44 + idx * 2, Math.floor(sample * 32767), true);
+    }
+
+    return bytes;
+  };
+
+  doom.audio.writeBytes = function (path, bytes) {
+    var file = std.open(path, "w");
+    if (!file) {
+      return false;
+    }
+    file.write(bytes.buffer, bytes.byteOffset || 0, bytes.byteLength || bytes.length || 0);
+    file.flush();
+    file.close();
+    return true;
+  };
+
+  doom.audio.playBytes = function (bytes, prefix) {
+    var command;
+    var path;
+    var nullFd;
+    if (!doom.audio.effectsEnabled()) {
+      return false;
+    }
+    command = doom.audio.playerCommand();
+    if (!command) {
+      return false;
+    }
+    path = doom.audio.tmpPath(prefix || "tone");
+    if (!doom.audio.writeBytes(path, bytes)) {
+      return false;
+    }
+    nullFd = os.open("/dev/null", os.O_WRONLY);
+    os.exec(["/bin/sh", "-lc", command + " '" + path + "' >/dev/null 2>&1; rm -f '" + path + "'"], {
+      usePath: false,
+      block: false,
+      stdout: nullFd >= 0 ? nullFd : undefined,
+      stderr: nullFd >= 0 ? nullFd : undefined
+    });
+    if (nullFd >= 0) {
+      os.close(nullFd);
+    }
+    return true;
+  };
+
+  doom.audio.playTone = function (frequency, durationMs, volume, waveform, prefix) {
+    return doom.audio.playBytes(
+      doom.audio.makeToneWav(frequency, durationMs, volume, waveform),
+      prefix || "tone"
+    );
+  };
+
+  doom.audio.mixTrack = function (pattern, options) {
+    var sampleRate = Number((options && options.sample_rate) || 22050);
+    var beatMs = Number((options && options.beat_ms) || 150);
+    var bars = pattern.length;
+    var totalMs = Math.max(1, bars * beatMs);
+    var sampleCount = Math.max(1, Math.floor(sampleRate * totalMs / 1000));
+    var dataSize = sampleCount * 2;
+    var bytes = new Uint8Array(44 + dataSize);
+    var view = new DataView(bytes.buffer);
+    var idx;
+    var voiceCount = pattern[0] ? pattern[0].length : 1;
+
+    function writeAscii(offset, text) {
+      var pos;
+      for (pos = 0; pos < text.length; pos++) {
+        bytes[offset + pos] = text.charCodeAt(pos) & 0xff;
+      }
+    }
+
+    writeAscii(0, "RIFF");
+    doom.util.writeU32LE(view, 4, 36 + dataSize);
+    writeAscii(8, "WAVE");
+    writeAscii(12, "fmt ");
+    doom.util.writeU32LE(view, 16, 16);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    doom.util.writeU32LE(view, 24, sampleRate);
+    doom.util.writeU32LE(view, 28, sampleRate * 2);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeAscii(36, "data");
+    doom.util.writeU32LE(view, 40, dataSize);
+
+    for (idx = 0; idx < sampleCount; idx++) {
+      var timeMs = (idx / sampleRate) * 1000;
+      var beatIndex = Math.min(bars - 1, Math.floor(timeMs / beatMs));
+      var beat = pattern[beatIndex];
+      var envelope = 1 - ((timeMs % beatMs) / beatMs);
+      var voiceIndex;
+      var value = 0;
+      for (voiceIndex = 0; voiceIndex < voiceCount; voiceIndex++) {
+        var note = beat[voiceIndex] || 0;
+        if (!note) {
+          continue;
+        }
+        var phase = 2 * Math.PI * note * (idx / sampleRate);
+        var wave = voiceIndex === 0 ? Math.sin(phase) : (Math.sin(phase) >= 0 ? 1 : -1);
+        value += wave * (voiceIndex === 0 ? 0.18 : 0.08);
+      }
+      value *= (0.55 + envelope * 0.45);
+      value = doom.util.clamp(value, -0.95, 0.95);
+      view.setInt16(44 + idx * 2, Math.floor(value * 32767), true);
+    }
+
+    return bytes;
+  };
+
+  doom.audio.trackBytes = function (trackId) {
+    if (doom.audio.track_cache[trackId]) {
+      return doom.audio.track_cache[trackId];
+    }
+    var pattern;
+    if (trackId === "title") {
+      pattern = [
+        [220, 110], [247, 110], [262, 131], [247, 110],
+        [220, 98], [196, 98], [220, 110], [165, 82]
+      ];
+    } else if (trackId === "victory") {
+      pattern = [
+        [392, 196], [440, 220], [523, 262], [659, 330],
+        [523, 262], [784, 392]
+      ];
+    } else if (trackId === "death") {
+      pattern = [
+        [147, 73], [139, 69], [131, 65], [123, 61],
+        [110, 55], [98, 49]
+      ];
+    } else {
+      pattern = [
+        [196, 98], [220, 98], [247, 123], [196, 98],
+        [196, 98], [220, 110], [262, 131], [220, 110],
+        [196, 98], [165, 82], [147, 73], [165, 82]
+      ];
+    }
+    doom.audio.track_cache[trackId] = doom.audio.mixTrack(pattern, {
+      beat_ms: trackId === "title" ? 210 : 170
+    });
+    return doom.audio.track_cache[trackId];
+  };
+
+  doom.audio.fx = {
+    shot: function () {
+      doom.audio.playTone(860, 65, 0.12, "square", "shot");
+    },
+    hit: function () {
+      doom.audio.playTone(520, 90, 0.10, "sine", "hit");
+    },
+    pickup: function () {
+      doom.audio.playTone(660, 120, 0.10, "sine", "pickup");
+    },
+    hurt: function () {
+      doom.audio.playTone(180, 140, 0.12, "saw", "hurt");
+    },
+    death: function () {
+      doom.audio.playTone(120, 280, 0.12, "saw", "death");
+    },
+    victory: function () {
+      doom.audio.playTone(392, 140, 0.10, "square", "victory_a");
+      doom.audio.playTone(523, 180, 0.10, "square", "victory_b");
+    }
+  };
+
+  doom.audio.music = {
+    next_ms: 0,
+    enabled: true,
+    current_track: "",
+    durations: {
+      title: 8 * 210,
+      game: 12 * 170,
+      victory: 6 * 170,
+      death: 6 * 170
+    }
+  };
+
+  doom.audio.tickMusic = function (state) {
+    var now;
+    var target;
+    if (!doom.audio.available() || !doom.audio.music.enabled || !doom.audio.effectsEnabled()) {
+      return;
+    }
+    if (state.mode === "title") {
+      target = "title";
+    } else if (state.mode === "victory") {
+      target = "victory";
+    } else if (state.mode === "game_over") {
+      target = "death";
+    } else if (state.mode === "playing") {
+      target = "game";
+    } else {
+      return;
+    }
+    now = doom.util.nowMs();
+    if (doom.audio.music.current_track === target && now < doom.audio.music.next_ms) {
+      return;
+    }
+    doom.audio.music.current_track = target;
+    doom.audio.music.next_ms = now + (doom.audio.music.durations[target] || 1800) - 120;
+    doom.audio.playBytes(doom.audio.trackBytes(target), "music_" + target);
+  };
+})(globalThis);

@@ -1,0 +1,6 @@
+incluir("../../samples/doom_ptjs/src/bootstrap/load_all.ptjs")
+
+definir bytes como doom.audio.makeToneWav(440, 120, 0.1, "square")
+mostrar doom.util.readAscii(bytes, 0, 4)
+mostrar doom.util.readAscii(bytes, 8, 4)
+mostrar bytes.length > 44

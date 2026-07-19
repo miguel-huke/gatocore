@@ -1,0 +1,8 @@
+função _processar(no, estado, dt) faça
+função _processar(no, estado, dt) faça
+  retornar no
+fim
+  se estado.modo == "play" então
+    observar no.nome
+  fim
+fim

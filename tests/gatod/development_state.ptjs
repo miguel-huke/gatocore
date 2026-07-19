@@ -1,0 +1,20 @@
+incluir("../../samples/gatod_engine/src/bootstrap/load_all.ptjs")
+
+definir project como gatod.engine.createProject()
+project.timeline.cursor = 30
+
+gatod.engine.addTimelineKey(project)
+gatod.engine.moveTimelineKey(project, 2)
+gatod.engine.insertScriptSnippet(project)
+gatod.engine.saveSelectedScript(project)
+
+definir state como gatod.editor.buildState(project)
+
+mostrar state.scripts.editor.dirty
+mostrar state.scripts.editor.lines.length
+mostrar state.scripts.editor.snippet
+mostrar state.timeline.selection.track.property
+mostrar state.timeline.selection.key.frame
+mostrar state.plugins.length
+mostrar state.audio.length
+mostrar state.profiler.saves_script

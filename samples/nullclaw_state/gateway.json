@@ -1,0 +1,8 @@
+{
+  "running": true,
+  "host": "127.0.0.1",
+  "port": 3000,
+  "started_at_ms": 1773927647643.244,
+  "heartbeat_count": 31,
+  "last_healthcheck_ms": 1773927655001.368
+}

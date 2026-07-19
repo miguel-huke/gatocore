@@ -1,0 +1,36 @@
+definir perfil como padrao_kkrieger()
+mostrar perfil.nome
+mostrar perfil.estruturas.join("|")
+
+definir memoria como arena(64)
+definir cabecalho como memoria.alocar(8, 8)
+memoria.escrever(cabecalho.valor.offset, "PTJSKRG")
+mostrar memoria.ler_texto(cabecalho.valor.offset, 7)
+
+definir flags como bitset(32)
+flags.ativar(0)
+flags.ativar(5)
+flags.ativar(31)
+mostrar flags.contar()
+
+definir fila como fila_circular(3)
+fila.empurrar("evento:1")
+fila.empurrar("evento:2")
+mostrar fila.listar().join("|")
+
+definir entidades como pool(2)
+definir jogador como entidades.alocar({ id: "jogador", hp: 100 })
+definir inimigo como entidades.alocar({ id: "inimigo", hp: 40 })
+mostrar entidades.ativos()
+mostrar jogador.valor.valor.id
+
+definir posicoes como vetor_compacto("f32", [10, 20, 30, 40])
+posicoes.definir(2, 99.5)
+mostrar posicoes.como_lista().join("|")
+
+definir indice como indice_vetorial_compacto([
+  "arena procedural compacta",
+  "scanner de bytes compacto",
+  "agente com memoria local"
+], 16)
+mostrar vizinho_proximo(indice, "scanner compacto", 1)[0].item

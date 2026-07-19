@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+      "pattern": "^\\s*imul\\s+([a-z0-9]+),\\s*1\\s*$",
+      "replace": ""
+    },
+    {
+      "pattern": "^\\s*or\\s+([a-z0-9]+),\\s*0\\s*$",
+      "replace": ""
+    },
+    {
+      "pattern": "^\\s*and\\s+([a-z0-9]+),\\s*-1\\s*$",
+      "replace": ""
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+função principal faça
+  definir texto como "gato.exe"
+  definir tamanho como tamanho de texto
+  mostrar tipo de texto
+  mostrar tamanho
+  mostrar identificar texto
+  retornar observar texto
+fim
+
+mostrar principal()

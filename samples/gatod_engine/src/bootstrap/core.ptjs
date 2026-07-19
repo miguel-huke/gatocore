@@ -1,0 +1,87 @@
+(function (global) {
+  "use strict";
+
+  if (global.gatod && global.gatod.__core_loaded) {
+    return;
+  }
+
+  var gatod = global.gatod || (global.gatod = {});
+
+  gatod.__core_loaded = true;
+  gatod.version = "0.1.0";
+  gatod.util = gatod.util || {};
+
+  gatod.util.absolutePath = function (path) {
+    try {
+      var resolved = os.realpath(String(path));
+      if (Array.isArray(resolved) && resolved[1] === 0) {
+        return resolved[0];
+      }
+    } catch (err) {
+    }
+    return String(path);
+  };
+
+  gatod.util.nowMs = function () {
+    try {
+      if (typeof agora_ms === "function") {
+        return agora_ms();
+      }
+    } catch (err) {
+    }
+    return Date.now();
+  };
+
+  gatod.util.id = function (prefix) {
+    return String(prefix || "id") + "_" + Math.floor(gatod.util.nowMs()) + "_" +
+      Math.floor(Math.random() * 100000);
+  };
+
+  gatod.util.clamp = function (value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  };
+
+  gatod.util.round2 = function (value) {
+    return Math.round(Number(value || 0) * 100) / 100;
+  };
+
+  gatod.util.clone = function (value) {
+    return JSON.parse(JSON.stringify(value));
+  };
+
+  gatod.util.toArray = function (value) {
+    return Array.isArray(value) ? value.slice() : [];
+  };
+
+  gatod.util.pad = function (text, size) {
+    var out = String(text == null ? "" : text);
+    while (out.length < size) {
+      out += " ";
+    }
+    return out;
+  };
+
+  gatod.util.fnv1aBytes = function (bytes) {
+    var hash = 0x811c9dc5;
+    var idx;
+    for (idx = 0; idx < bytes.length; idx++) {
+      hash ^= bytes[idx];
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return ("00000000" + hash.toString(16)).slice(-8);
+  };
+
+  gatod.util.resolveSampleRoot = function () {
+    return gatod.sample_root;
+  };
+
+  gatod.util.safeJsonParse = function (text, fallback) {
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      return fallback;
+    }
+  };
+
+  gatod.sample_root = gatod.util.absolutePath(String(global.__pt_base_dir || ".") + "/../..");
+})(globalThis);

@@ -1,0 +1,9 @@
+função fat(n) faça
+  se n <= 1 então
+    retornar 1
+  senão
+    retornar n * fat(n - 1)
+  fim
+fim
+
+mostrar fat(5)
